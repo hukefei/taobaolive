@@ -388,6 +388,10 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
             # TODO: assign and sample triplet roi
 
             # TODO: add embedding head to extract features(triplet loss)
+            triplet_list = []
+            dista, distb, embedded = self.embedding_head(triplet_list)
+            triplet_loss = self.embedding_head.loss(dista, distb, embedded)
+            losses.update(triplet_loss)
 
         return losses
 
