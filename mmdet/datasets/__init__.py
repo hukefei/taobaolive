@@ -10,10 +10,11 @@ from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 
 from .coco_cq import CocoDataset_CQ
+from .coco_pair import CocoDataset_pair
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'VOCDataset',
     'CityscapesDataset', 'GroupSampler', 'DistributedGroupSampler',
     'build_dataloader', 'ConcatDataset', 'RepeatDataset', 'WIDERFaceDataset',
-    'DATASETS', 'build_dataset', 'CocoDataset_CQ'
+    'DATASETS', 'build_dataset', 'CocoDataset_CQ', 'CocoDataset_pair'
 ]

@@ -16,7 +16,7 @@ from .default_transforms import (MinIoFRandomCrop, RandomBrightness, RandomColor
                                  RandomNoise, RandomRotate, RandomVerticalFlip, BBoxJitter, CQ_Resize)
 from .aug_by_channel import Rotate, Translate, RotateOrTranslate
 from .matting_by_channel import GroupMatting
-from .add_gt_bboxes import AddGT, AddGTByChannel
+from .add_gt_bboxes import AddGTWithAug, AddGTByChannel
 
 __all__ = [
     'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
@@ -27,5 +27,5 @@ __all__ = [
     'BBoxJitter', 'Matting', 'AutoAugment', 'MinIoFRandomCrop',
     'Concat', 'NormalizeGray', 'RandomVerticalFlip', 'RandomRotate', 'RandomNoise',
     'RandomFilter', 'RandomContrast', 'RandomColor', 'RandomBrightness', 'CQ_Resize',
-    'CQ_MultiScaleFlipAug', 'GroupMatting', 'ConcatV2', 'AddGT', 'AddGTByChannel'
+    'CQ_MultiScaleFlipAug', 'GroupMatting', 'ConcatV2', 'AddGTWithAug', 'AddGTByChannel'
 ]

@@ -5,6 +5,10 @@ import torch.nn.functional as F
 from ..registry import LOSSES
 from .utils import weight_reduce_loss
 
+def label_smoothing(labels, epsilon=0.1):
+    k = labels.shape[0]
+    return ((1-epsilon) * labels) + (epsilon / k)
+
 
 def cross_entropy(pred, label, weight=None, class_weights=None, reduction='mean', avg_factor=None):
     # element-wise losses
@@ -72,6 +76,7 @@ class CQ_CrossEntropyLoss(nn.Module):
     def __init__(self,
                  use_sigmoid=False,
                  use_mask=False,
+                 label_smoothing=False,
                  reduction='mean',
                  class_weights=None,
                  loss_weight=1.0):
@@ -82,6 +87,7 @@ class CQ_CrossEntropyLoss(nn.Module):
         self.reduction = reduction
         self.loss_weight = loss_weight
         self.class_weights = class_weights
+        self.label_smoothing = label_smoothing
 
         if self.use_sigmoid:
             self.cls_criterion = binary_cross_entropy
@@ -100,6 +106,10 @@ class CQ_CrossEntropyLoss(nn.Module):
         assert reduction_override in (None, 'none', 'mean', 'sum')
         reduction = (
             reduction_override if reduction_override else self.reduction)
+
+        if self.label_smoothing:
+            label = label_smoothing(label)
+
         loss_cls = self.loss_weight * self.cls_criterion(
             cls_score,
             label,

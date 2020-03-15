@@ -1,1 +1,1 @@
-python /default_tools_dyy/inference/inference_round2.py
+python /default_tools_dyy/inference/inference_round2_3models.py

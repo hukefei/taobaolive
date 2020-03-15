@@ -6,6 +6,7 @@ from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmdet.models.plugins import GeneralizedAttention
 from mmdet.ops import ContextBlock
+from mmdet.ops import DropBlock2D, LinearScheduler
 from mmdet.utils import get_root_logger
 from ..registry import BACKBONES
 from ..utils import build_conv_layer, build_norm_layer
@@ -358,6 +359,8 @@ class ResNet_CQ(nn.Module):
                  strides=(1, 2, 2, 2),
                  dilations=(1, 1, 1, 1),
                  out_indices=(0, 1, 2, 3),
+                 dropblock_indices=None,
+                 dropblock_cfg=dict(block_size=5, drop_prob=0.1),
                  style='pytorch',
                  frozen_stages=-1,
                  conv_cfg=None,
@@ -401,8 +404,11 @@ class ResNet_CQ(nn.Module):
         self.block, stage_blocks = self.arch_settings[depth]
         self.stage_blocks = stage_blocks[:num_stages]
         self.inplanes = 64
+        self.dropblock_indices = dropblock_indices
 
         self._make_stem_layer(in_channels)
+
+        self.dropblock = DropBlock2D(**dropblock_cfg)
 
         self.res_layers = []
         for i, num_blocks in enumerate(self.stage_blocks):
@@ -453,15 +459,6 @@ class ResNet_CQ(nn.Module):
         self.add_module(self.norm1_name, norm1)
         self.relu = nn.ReLU(inplace=True)
 
-        self.stem_conv1 = build_conv_layer(
-            self.conv_cfg,
-            64,
-            64,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            bias=False)
-
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def _freeze_stages(self):
@@ -507,14 +504,14 @@ class ResNet_CQ(nn.Module):
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)
-
-        x = self.stem_conv1(x)
-
         x = self.maxpool(x)
+
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
+            if i in self.dropblock_indices:
+                x = self.dropblock(x)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
