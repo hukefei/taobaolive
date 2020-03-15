@@ -16,10 +16,12 @@ from .rpn import RPN
 from .single_stage import SingleStageDetector
 from .two_stage import TwoStageDetector
 from .efficientdet import EfficientDet
+from .faster_rcnn_triplet import FasterRCNN_Triplet
+from .two_stage_triplet import TwoStageDetector_Triplet
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
     'FastRCNN', 'FasterRCNN', 'MaskRCNN', 'CascadeRCNN', 'HybridTaskCascade',
     'DoubleHeadRCNN', 'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN',
-    'RepPointsDetector', 'FOVEA', 'EfficientDet'
+    'RepPointsDetector', 'FOVEA', 'EfficientDet', 'FasterRCNN_Triplet', 'TwoStageDetector_Triplet'
 ]
