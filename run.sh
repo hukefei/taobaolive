@@ -1,0 +1,1 @@
+python /default_tools_dyy/inference/inference_round2.py
