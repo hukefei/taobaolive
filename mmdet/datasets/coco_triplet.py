@@ -164,7 +164,7 @@ class CocoDataset_triplet(CocoDataset):
         self.pre_pipeline(results)
         results = self.pipeline(results)
 
-        instance_ids = list(set(results['instances']))
+        instance_ids = list(set(ann_info['instances']))
         instance_ids = [idx for idx in instance_ids if idx > 0]
         instance_id = random.choice(instance_ids)
 
