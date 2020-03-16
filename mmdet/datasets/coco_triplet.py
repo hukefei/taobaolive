@@ -60,9 +60,9 @@ class CocoDataset_triplet(CocoDataset):
             cat_id: i + 1
             for i, cat_id in enumerate(self.cat_ids)
         }
-        self.img_ids = self.coco2.getImgIds()
+        self.img_ids2 = self.coco2.getImgIds()
         img_infos = []
-        for i in self.img_ids:
+        for i in self.img_ids2:
             info = self.coco2.loadImgs([i])[0]
             info['filename'] = info['file_name']
             img_infos.append(info)
