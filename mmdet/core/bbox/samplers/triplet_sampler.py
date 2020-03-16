@@ -16,6 +16,14 @@ class TripletSampler(BaseSampler):
                                             add_gt_as_proposals)
         self.rng = demodata.ensure_rng(kwargs.get('rng', None))
 
+    def sample(self,
+               assign_result,
+               bboxes,
+               gt_bboxes,
+               gt_labels=None,
+               **kwargs):
+        pass
+
     def random_choice(self, gallery, num):
         """Random select some elements from the gallery.
 

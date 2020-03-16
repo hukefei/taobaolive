@@ -292,6 +292,7 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
         """
         losses = dict()
         triplet_assign_result = []
+        batch_size = img_[0].size(0)
         for i in range(3):
             img = img_[i]
             img_meta = img_meta_[i]
@@ -367,45 +368,6 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                     losses[k] += v
                 # losses.update(loss_bbox)
 
-            # mask head forward and loss
-            if self.with_mask:
-                if not self.share_roi_extractor:
-                    pos_rois = bbox2roi(
-                        [res.pos_bboxes for res in sampling_results])
-                    mask_feats = self.mask_roi_extractor(
-                        x[:self.mask_roi_extractor.num_inputs], pos_rois)
-                    if self.with_shared_head:
-                        mask_feats = self.shared_head(mask_feats)
-                else:
-                    pos_inds = []
-                    device = bbox_feats.device
-                    for res in sampling_results:
-                        pos_inds.append(
-                            torch.ones(
-                                res.pos_bboxes.shape[0],
-                                device=device,
-                                dtype=torch.uint8))
-                        pos_inds.append(
-                            torch.zeros(
-                                res.neg_bboxes.shape[0],
-                                device=device,
-                                dtype=torch.uint8))
-                    pos_inds = torch.cat(pos_inds)
-                    mask_feats = bbox_feats[pos_inds]
-
-                if mask_feats.shape[0] > 0:
-                    mask_pred = self.mask_head(mask_feats)
-                    mask_targets = self.mask_head.get_target(
-                        sampling_results, gt_masks, self.train_cfg.rcnn)
-                    pos_labels = torch.cat(
-                        [res.pos_gt_labels for res in sampling_results])
-                    loss_mask = self.mask_head.loss(mask_pred, mask_targets,
-                                                    pos_labels)
-                    for k, v in loss_mask:
-                        losses.setdefault(k, 0)
-                        losses[k] += v
-                    # losses.update(loss_mask)
-
             # TODO: assign and sample triplet roi
             # assign gts and sample proposals
             instance_assigner = build_assigner(self.train_cfg.triplet.assigner)
@@ -426,16 +388,20 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
         instance_sampler = build_sampler(
             self.train_cfg.triplet.sampler, context=self)
         instance_sampling_results = []
-        for i in range(num_imgs):
+        for i in range(batch_size):
             instance_sampling_result = instance_sampler.sample(
                 triplet_assign_result)
             instance_sampling_results.append(instance_sampling_result)
 
         # TODO: add embedding head to extract features(triplet loss)
-        triplet_list = []
-        dista, distb, embedded = self.embedding_head(triplet_list)
-        triplet_loss = self.embedding_head.loss(dista, distb, embedded)
-        losses.update(triplet_loss)
+        # triplet shape: (3,), triplet_list should contain results of a batch
+        triplet_list = [[]]
+        for triplet in triplet_list:
+            dista, distb, embedded = self.embedding_head(triplet)
+            triplet_loss = self.embedding_head.loss(dista, distb, embedded)
+            for k, v in triplet_loss:
+                losses.setdefault(k, 0)
+                losses[k] += v
 
         return losses
 

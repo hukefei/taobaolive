@@ -42,7 +42,7 @@ class TripletHead(nn.Module):
         pass
 
     def forward(self, x):
-        # x should be triplet tuple
+        # x should be triplet list
         embedded = []
         if self.with_avg_pool:
             for i in x:
