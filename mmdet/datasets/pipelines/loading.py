@@ -42,12 +42,14 @@ class LoadAnnotations(object):
                  with_label=True,
                  with_mask=False,
                  with_seg=False,
-                 poly2mask=True):
+                 poly2mask=True,
+                 with_gallery=False):
         self.with_bbox = with_bbox
         self.with_label = with_label
         self.with_mask = with_mask
         self.with_seg = with_seg
         self.poly2mask = poly2mask
+        self.with_gallery = with_gallery
 
     def _load_bboxes(self, results):
         ann_info = results['ann_info']
@@ -62,6 +64,12 @@ class LoadAnnotations(object):
 
     def _load_labels(self, results):
         results['gt_labels'] = results['ann_info']['labels']
+        return results
+
+    def _load_gallery(self, results):
+        results['gt_instances'] = results['ann_info']['instances']
+        results['gt_viewpoints'] = results['ann_info']['viewpoints']
+        results['gt_displays'] = results['ann_info']['displays']
         return results
 
     def _poly2mask(self, mask_ann, img_h, img_w):
@@ -106,6 +114,8 @@ class LoadAnnotations(object):
             results = self._load_masks(results)
         if self.with_seg:
             results = self._load_semantic_seg(results)
+        if self.with_gallery:
+            results = self._load_gallery(results)
         return results
 
     def __repr__(self):

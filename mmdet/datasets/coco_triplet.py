@@ -155,6 +155,14 @@ class CocoDataset_triplet(CocoDataset):
 
         return ann
 
+    def gallery_pre_pipeline(self, results):
+        results['img_prefix'] = self.gallery_img_path
+        results['seg_prefix'] = []
+        results['proposal_file'] = []
+        results['bbox_fields'] = []
+        results['mask_fields'] = []
+        results['seg_fields'] = []
+
     def prepare_train_img(self, idx):
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)
@@ -175,7 +183,7 @@ class CocoDataset_triplet(CocoDataset):
         results_pos = dict(img_info=pos_img_info, ann_info=pos_ann_info)
         results_pos['scale'] = results['img_meta'].data['scale_factor']
         results_pos['flip'] = results['img_meta'].data['flip']
-        results_pos['img_prefix'] = self.gallery_img_path
+        self.gallery_pre_pipeline(results_pos)
         results_pos = self.pipeline(results_pos)
 
         # get negative example
@@ -188,7 +196,7 @@ class CocoDataset_triplet(CocoDataset):
         results_neg = dict(img_info=neg_img_info, ann_info=neg_ann_info)
         results_neg['scale'] = results['img_meta'].data['scale_factor']
         results_neg['flip'] = results['img_meta'].data['flip']
-        results_neg['img_prefix'] = self.gallery_img_path
+        self.gallery_pre_pipeline(results_neg)
         results_neg = self.pipeline(results_neg)
 
         triplet = [results, results_neg, results_pos]
