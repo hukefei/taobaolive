@@ -141,5 +141,5 @@ def main(config,
         meta=meta)
 
 if __name__ == '__main__':
-    config = r'/data/sdv2/cq/mmdet_cq/CQ_cfg/ROUND2_dyy/test_pair_train.py'
+    config = r'/data/sdv2/taobao/mmdet_taobao/taobao_configs/faster_rcnn_r50_fpn_triplet.py'
     main(config)

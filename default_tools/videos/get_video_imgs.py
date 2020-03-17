@@ -7,7 +7,7 @@ from multiprocessing.pool import Pool
 from functools import partial
 
 CLASS_DICT = {'短袖Top': 'duanxiushangyi', '长袖Top': 'changxiushangyi', '短袖衬衫': 'duanxiuchenshan',
-              '长袖衬衫': 'changxiuchenshan', '背心上衣': 'beixinshangyi', '吊带上衣': 'diaodaishangyi',
+              '长袖衬衫': 'changxiuchenshan', '背心上衣': 'beixinshangyi', '吊带Top': 'diaodaishangyi',
               '无袖上衣': 'wuxiushangyi', '短外套': 'duanwaitao', '短马甲': 'duanmajia',
               '长袖连衣裙': 'changxiulianyiqun', '短袖连衣裙': 'duanxiulianyiqun', '无袖连衣裙': 'wuxiulianyiqun',
               '长马甲': 'changmajia', '长款外套': 'changkuanwaitao', '连体衣': 'liantiyi',
@@ -52,10 +52,10 @@ def get_video_imgs(pair, save_dir):
             frame_ann = frames[idx]
             frame_index = frame_ann['frame_index']
             assert frame_index == c
-            frame_ann['image_name'] = ann_video_name + '_{}.jpg'.format(c)
+            frame_ann['image_name'] = 'v' + ann_video_name + '_{}.jpg'.format(c)
             frame_ann['height'] = h
             frame_ann['width'] = w
-            ann_name = ann_video_name + '_{}.json'.format(c)
+            ann_name = 'v' + ann_video_name + '_{}.json'.format(c)
             idx += 1
             if frame_ann['annotations'] != []:
                 for ann_ in frame_ann['annotations']:
@@ -67,7 +67,7 @@ def get_video_imgs(pair, save_dir):
                 with open(os.path.join(save_dir, ann_name), 'w') as f:
                     json.dump(frame_ann, f, indent=4)
                 # save frame image file
-                cv2.imwrite(os.path.join(save_dir, video_name.split('.')[0] + '_{}.jpg'.format(c)), frame)
+                cv2.imwrite(os.path.join(save_dir, 'v' + video_name.split('.')[0] + '_{}.jpg'.format(c)), frame)
 
         c += 1
         cv2.waitKey(1)

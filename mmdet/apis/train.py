@@ -75,8 +75,15 @@ def batch_processor(model, data, train_mode):
     losses = model(**data)
     loss, log_vars = parse_losses(losses)
 
+    if isinstance(data['img'], torch.Tensor):
+        num_samples = len(data['img'].data)
+    elif isinstance(data['img'], list):
+        num_samples = len(data['img'][0].data)
+    else:
+        num_samples = 1
+
     outputs = dict(
-        loss=loss, log_vars=log_vars, num_samples=len(data['img'].data))
+        loss=loss, log_vars=log_vars, num_samples=num_samples)
 
     return outputs
 

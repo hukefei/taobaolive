@@ -1,7 +1,7 @@
 
 import cv2
 from PIL import Image, ImageEnhance, ImageFilter
-from skimage.util import random_noise
+#from skimage.util import random_noise
 
 import mmcv
 import numpy as np
@@ -658,48 +658,48 @@ class RandomBrightness(object):
             self.brightness_range, self.brightness_ratio)
 
 
-@PIPELINES.register_module
-class RandomNoise(object):
-    """Add noise to image.
-
-    If the input dict contains the key "noise", then the flag will be used,
-    otherwise it will be randomly decided by a ratio specified in the init
-    method.
-
-    Args:
-        noise_ratio (float, optional): The adjusting probability.
-    """
-
-    def __init__(self, noise_type="gaussian", noise_ratio=None):
-        """
-        noise_type = ["gaussian", "localvar", "poisson", "salt", "pepper", "s&p", "speckle"]
-        """
-        self.noise_type = noise_type
-        self.noise_ratio = noise_ratio
-        if noise_ratio is not None:
-            assert noise_ratio >= 0 and noise_ratio <= 1
-
-    def add_noise(self, img):
-        """Add noise to image.
-
-        Args:
-            image(ndarray): opencv type(bgr)
-        """
-        noised_image = (random_noise(img, mode=self.noise_type) * 255).astype(np.uint8)
-        return noised_image
-
-    def __call__(self, results):
-        if 'noise' not in results:
-            noise = True if np.random.rand() < self.noise_ratio else False
-            results['noise'] = noise
-        if results['noise']:
-            # add noise to image
-            results['img'] = self.add_noise(results['img'])
-        return results
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(noise_type={}, noise_ratio={})'.format(
-            self.noise_type, self.noise_ratio)
+# @PIPELINES.register_module
+# class RandomNoise(object):
+#     """Add noise to image.
+#
+#     If the input dict contains the key "noise", then the flag will be used,
+#     otherwise it will be randomly decided by a ratio specified in the init
+#     method.
+#
+#     Args:
+#         noise_ratio (float, optional): The adjusting probability.
+#     """
+#
+#     def __init__(self, noise_type="gaussian", noise_ratio=None):
+#         """
+#         noise_type = ["gaussian", "localvar", "poisson", "salt", "pepper", "s&p", "speckle"]
+#         """
+#         self.noise_type = noise_type
+#         self.noise_ratio = noise_ratio
+#         if noise_ratio is not None:
+#             assert noise_ratio >= 0 and noise_ratio <= 1
+#
+#     def add_noise(self, img):
+#         """Add noise to image.
+#
+#         Args:
+#             image(ndarray): opencv type(bgr)
+#         """
+#         noised_image = (random_noise(img, mode=self.noise_type) * 255).astype(np.uint8)
+#         return noised_image
+#
+#     def __call__(self, results):
+#         if 'noise' not in results:
+#             noise = True if np.random.rand() < self.noise_ratio else False
+#             results['noise'] = noise
+#         if results['noise']:
+#             # add noise to image
+#             results['img'] = self.add_noise(results['img'])
+#         return results
+#
+#     def __repr__(self):
+#         return self.__class__.__name__ + '(noise_type={}, noise_ratio={})'.format(
+#             self.noise_type, self.noise_ratio)
 
 
 @PIPELINES.register_module

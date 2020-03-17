@@ -314,9 +314,12 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                               self.train_cfg.rpn)
                 rpn_losses = self.rpn_head.loss(
                     *rpn_loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-                for k, v in rpn_losses:
-                    losses.setdefault(k, 0)
-                    losses[k] += v
+                for k, v in rpn_losses.items():
+                    if k not in losses.keys():
+                        losses.setdefault(k, v)
+                    else:
+                        for j in range(len(v)):
+                            losses[k][j] += v[j]
                 # losses.update(rpn_losses)
 
                 proposal_cfg = self.train_cfg.get('rpn_proposal',
@@ -363,11 +366,15 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                          self.train_cfg.rcnn)
                 loss_bbox = self.bbox_head.loss(cls_score, bbox_pred,
                                                 *bbox_targets)
-                for k, v in loss_bbox:
-                    losses.setdefault(k, 0)
-                    losses[k] += v
+                for k, v in loss_bbox.items():
+                    if k not in losses.keys():
+                        losses.setdefault(k, v)
+                    else:
+                        losses[k] += v
+
                 # losses.update(loss_bbox)
 
+            '''
             # TODO: assign and sample triplet roi
             # assign gts and sample proposals
             instance_assigner = build_assigner(self.train_cfg.triplet.assigner)
@@ -402,7 +409,8 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
             for k, v in triplet_loss:
                 losses.setdefault(k, 0)
                 losses[k] += v
-
+                '''
+        losses['acc'] /= 3
         return losses
 
     def forward_train(self,
@@ -410,6 +418,7 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                       img_meta,
                       gt_bboxes,
                       gt_labels,
+                      gt_instances,
                       gt_bboxes_ignore=None,
                       gt_masks=None,
                       proposals=None):
@@ -417,9 +426,10 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                           img_meta,
                                           gt_bboxes,
                                           gt_labels,
-                                          gt_bboxes_ignore=gt_bboxes_ignore,
-                                          gt_masks=gt_masks,
-                                          proposals=proposals)
+                                          gt_instances,
+                                          gt_bboxes_ignore_=gt_bboxes_ignore,
+                                          gt_masks_=gt_masks,
+                                          proposals_=proposals)
 
     async def async_simple_test(self,
                                 img,

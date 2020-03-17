@@ -13,7 +13,7 @@ from .autoaugment import AutoAugment
 from .concat import Concat, ConcatV2
 from .normalizegray import NormalizeGray
 from .default_transforms import (MinIoFRandomCrop, RandomBrightness, RandomColor, RandomContrast, RandomFilter,
-                                 RandomNoise, RandomRotate, RandomVerticalFlip, BBoxJitter, CQ_Resize)
+                                RandomRotate, RandomVerticalFlip, BBoxJitter, CQ_Resize)
 from .aug_by_channel import Rotate, Translate, RotateOrTranslate
 from .matting_by_channel import GroupMatting
 from .add_gt_bboxes import AddGTWithAug, AddGTByChannel
@@ -25,7 +25,7 @@ __all__ = [
     'RandomCrop', 'Normalize', 'SegRescale', 'MinIoURandomCrop', 'Expand',
     'PhotoMetricDistortion', 'Albu', 'InstaBoost',
     'BBoxJitter', 'Matting', 'AutoAugment', 'MinIoFRandomCrop',
-    'Concat', 'NormalizeGray', 'RandomVerticalFlip', 'RandomRotate', 'RandomNoise',
+    'Concat', 'NormalizeGray', 'RandomVerticalFlip', 'RandomRotate',
     'RandomFilter', 'RandomContrast', 'RandomColor', 'RandomBrightness', 'CQ_Resize',
     'CQ_MultiScaleFlipAug', 'GroupMatting', 'ConcatV2', 'AddGTWithAug', 'AddGTByChannel'
 ]

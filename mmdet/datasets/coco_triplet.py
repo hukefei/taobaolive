@@ -199,5 +199,10 @@ class CocoDataset_triplet(CocoDataset):
         self.gallery_pre_pipeline(results_neg)
         results_neg = self.pipeline(results_neg)
 
-        triplet = [results, results_neg, results_pos]
+        triplet = {}
+        # triplet = [results, results_neg, results_pos]
+        for k, v in results.items():
+            triplet.setdefault(k, []).append(v)
+            triplet[k].append(results_neg[k])
+            triplet[k].append(results_pos[k])
         return triplet

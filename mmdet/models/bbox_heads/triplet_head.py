@@ -7,9 +7,9 @@ from torch.autograd import Variable
 
 from mmdet.core import (auto_fp16, bbox_target, delta2bbox, force_fp32,
                         multiclass_nms)
-from ..builder import build_loss
-from ..losses import accuracy
-from ..registry import HEADS
+from mmdet.models.builder import build_loss
+from mmdet.models.losses import accuracy
+from mmdet.models.registry import HEADS
 
 
 @HEADS.register_module

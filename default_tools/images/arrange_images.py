@@ -4,7 +4,7 @@ import shutil
 import cv2
 
 CLASS_DICT = {'短袖Top': 'duanxiushangyi', '长袖Top': 'changxiushangyi', '短袖衬衫': 'duanxiuchenshan',
-              '长袖衬衫': 'changxiuchenshan', '背心上衣': 'beixinshangyi', '吊带上衣': 'diaodaishangyi',
+              '长袖衬衫': 'changxiuchenshan', '背心上衣': 'beixinshangyi', '吊带Top': 'diaodaishangyi',
               '无袖上衣': 'wuxiushangyi', '短外套': 'duanwaitao', '短马甲': 'duanmajia',
               '长袖连衣裙': 'changxiulianyiqun', '短袖连衣裙': 'duanxiulianyiqun', '无袖连衣裙': 'wuxiulianyiqun',
               '长马甲': 'changmajia', '长款外套': 'changkuanwaitao', '连体衣': 'liantiyi',
@@ -29,7 +29,7 @@ def arrage_image(img_dir, ann_dir, save_dir):
                         ann = json.load(f)
                 else:
                     continue
-                ann['img_name'] = ann['item_id'] + '_' + ann['img_name']
+                ann['image_name'] = ann['item_id'] + '_' + ann['img_name']
                 ann['height'] = h
                 ann['width'] = w
                 if ann['annotations'] != []:
