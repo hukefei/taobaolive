@@ -55,7 +55,7 @@ def json2coco(json_dir, save_file, is_video=True):
             annotations.append({'area': w * h, 'image_id': img_id, 'bbox': [x, y, w, h],
                                 'category_id': category_id, 'id': cat_id, 'ignore': 0,
                                 'viewpoint': viewpoint, 'display': display, 'instance_id': instance_id,
-                                'segmentation': []})
+                                'segmentation': [], 'iscrowd': 0})
             cat_id += 1
         img_id += 1
 
@@ -75,6 +75,6 @@ def generate_class_dict(class_list):
 
 
 if __name__ == '__main__':
-    json_dir = r'/data/sdv2/taobao/data/demo_video_images'
-    save_file = r'/data/sdv2/taobao/data/demo_video_images.json'
+    json_dir = r'/data/sdv2/taobao/data/demo_images'
+    save_file = r'/data/sdv2/taobao/data/demo_images.json'
     json2coco(json_dir, save_file, is_video=True)

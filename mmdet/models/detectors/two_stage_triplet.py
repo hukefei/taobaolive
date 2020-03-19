@@ -379,7 +379,6 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
                 # losses.update(loss_bbox)
 
-            # TODO: assign and sample triplet roi
             # assign instance id
             instance_assigner = build_assigner(self.train_cfg.triplet.assigner)
 
@@ -419,7 +418,6 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                 roi_feat_lst.append(roi_feat)
             triplet_roi_feats.append(roi_feat_lst)
 
-        # TODO: add embedding head to extract features(triplet loss)
         # triplet shape: (3,), triplet_list should contain results of a batch
         for triplet in triplet_roi_feats:
             dista, distb, embedded = self.embedding_head(triplet)
@@ -497,10 +495,16 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
         else:
             proposal_list = proposals
 
-        det_bboxes, det_labels = self.simple_test_bboxes(
-            x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
-        bbox_results = bbox2result(det_bboxes, det_labels,
-                                   self.bbox_head.num_classes)
+        if not self.with_embedding:
+            det_bboxes, det_labels = self.simple_test_bboxes(
+                x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
+            bbox_results = bbox2result(det_bboxes, det_labels,
+                                       self.bbox_head.num_classes)
+        else:
+            det_bboxes, det_labels, det_embedding = self.simple_test_bboxes_embedded(
+                x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
+            bbox_results = bbox2result(det_bboxes, det_labels,
+                                       self.bbox_head.num_classes)
 
         if not self.with_mask:
             return bbox_results

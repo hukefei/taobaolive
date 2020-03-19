@@ -41,14 +41,21 @@ class TripletHead(nn.Module):
     def init_weights(self):
         pass
 
+    def embedding(self, x):
+        if self.with_avg_pool:
+            embedded = self.avg_pool(x)
+            embedded = embedded.squeeze(-1)
+            embedded = embedded.squeeze(-1)
+        else:
+            embedded = x
+        return embedded
+
     def forward(self, x):
         # x should be triplet list
         embedded = []
-        if self.with_avg_pool:
-            for i in x:
-                embedded.append(self.avg_pool(i))
-        else:
-            embedded = x
+        for i in x:
+            embedded.append(self.embedding(i))
+
         dista = F.pairwise_distance(embedded[0], embedded[1], 2)
         distb = F.pairwise_distance(embedded[0], embedded[2], 2)
 

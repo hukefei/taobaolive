@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 
 from mmdet.core import (auto_fp16, bbox_target, delta2bbox, force_fp32,
-                        multiclass_nms)
+                        multiclass_nms, multiclass_nms_embedding)
 from ..builder import build_loss
 from ..losses import accuracy
 from ..registry import HEADS
@@ -140,6 +140,7 @@ class BBoxHead(nn.Module):
                        bbox_pred,
                        img_shape,
                        scale_factor,
+                       embedding=None,
                        rescale=False,
                        cfg=None):
         if isinstance(cls_score, list):
@@ -166,13 +167,13 @@ class BBoxHead(nn.Module):
         if cfg is None:
             return bboxes, scores
         else:
-            det_bboxes, det_labels = multiclass_nms(bboxes, scores,
-                                                    cfg.score_thr, cfg.nms,
-                                                    cfg.max_per_img)
+            det_bboxes, det_labels, det_embeddings = multiclass_nms_embedding(bboxes, scores,
+                                                                              cfg.score_thr, cfg.nms,
+                                                                              cfg.max_per_img, embedding=embedding)
 
-            return det_bboxes, det_labels
+            return det_bboxes, det_labels, det_embeddings
 
-    @force_fp32(apply_to=('bbox_preds', ))
+    @force_fp32(apply_to=('bbox_preds',))
     def refine_bboxes(self, rois, labels, bbox_preds, pos_is_gts, img_metas):
         """Refine bboxes during training.
 
@@ -250,7 +251,7 @@ class BBoxHead(nn.Module):
 
         return bboxes_list
 
-    @force_fp32(apply_to=('bbox_pred', ))
+    @force_fp32(apply_to=('bbox_pred',))
     def regress_by_class(self, rois, label, bbox_pred, img_meta):
         """Regress the bbox for the predicted class. Used in Cascade R-CNN.
 

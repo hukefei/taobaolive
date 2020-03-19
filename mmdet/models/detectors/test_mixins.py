@@ -13,9 +13,7 @@ if sys.version_info >= (3, 7):
 
 
 class RPNTestMixin(object):
-
     if sys.version_info >= (3, 7):
-
         async def async_test_rpn(self, x, img_meta, rpn_test_cfg):
             sleep_interval = rpn_test_cfg.pop("async_sleep_interval", 0.025)
             async with completed(
@@ -58,7 +56,6 @@ class RPNTestMixin(object):
 
 
 class BBoxTestMixin(object):
-
     if sys.version_info >= (3, 7):
 
         async def async_test_bboxes(self,
@@ -119,6 +116,33 @@ class BBoxTestMixin(object):
             cfg=rcnn_test_cfg)
         return det_bboxes, det_labels
 
+    def simple_test_bboxes_embedded(self,
+                                    x,
+                                    img_meta,
+                                    proposals,
+                                    rcnn_test_cfg,
+                                    rescale=False):
+        """Test only det bboxes without augmentation."""
+        rois = bbox2roi(proposals)
+        roi_feats = self.bbox_roi_extractor(
+            x[:len(self.bbox_roi_extractor.featmap_strides)], rois)
+        if self.with_shared_head:
+            roi_feats = self.shared_head(roi_feats)
+        cls_score, bbox_pred = self.bbox_head(roi_feats)
+        embedding_pred = self.embedding_head.embedding(roi_feats)
+        img_shape = img_meta[0]['img_shape']
+        scale_factor = img_meta[0]['scale_factor']
+        det_bboxes, det_labels, det_embeddings = self.bbox_head.get_det_bboxes(
+            rois,
+            cls_score,
+            bbox_pred,
+            img_shape,
+            scale_factor,
+            embedding=embedding_pred,
+            rescale=rescale,
+            cfg=rcnn_test_cfg)
+        return det_bboxes, det_labels, det_embeddings
+
     def aug_test_bboxes(self, feats, img_metas, proposal_list, rcnn_test_cfg):
         aug_bboxes = []
         aug_scores = []
@@ -158,7 +182,6 @@ class BBoxTestMixin(object):
 
 
 class MaskTestMixin(object):
-
     if sys.version_info >= (3, 7):
 
         async def async_test_mask(self,

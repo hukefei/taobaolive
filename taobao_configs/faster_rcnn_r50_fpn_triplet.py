@@ -190,6 +190,6 @@ total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = '/data/sdv2/taobao/work_dirs/'
-load_from = None
+load_from = '/data/sdv2/cq/pretrained_models/faster_rcnn_r50_fpn_2x_20181010-443129e1.pth'
 resume_from = None
 workflow = [('train', 1)]

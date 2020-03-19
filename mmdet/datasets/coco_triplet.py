@@ -29,8 +29,10 @@ class CocoDataset_triplet(CocoDataset):
                                                   filter_empty_gt)
         self.gallery_img_path = gallery_img_path
         self.gallery_ann_file = gallery_ann_file
-        self.gallery_img_infos = self.load_gallery_annotations(self.gallery_ann_file)
-        self.gallery_instance_dict = self.get_gallery_instances(self.gallery_ann_file)
+        if self.gallery_img_path is not None:
+            self.gallery_img_infos = self.load_gallery_annotations(self.gallery_ann_file)
+        if self.gallery_ann_file is not None:
+            self.gallery_instance_dict = self.get_gallery_instances(self.gallery_ann_file)
 
     def load_annotations(self, ann_file):
         self.coco = COCO(ann_file)
