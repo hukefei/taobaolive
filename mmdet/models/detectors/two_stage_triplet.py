@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
+from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler, triplet_bbox2roi
 from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
@@ -292,7 +292,12 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
         """
         losses = dict()
         triplet_assign_result = []
+        triplet_proposals = []
+        triplet_gt_bboxes = []
+        triplet_gt_instances = []
+        triplet_feats = []
         batch_size = img_[0].size(0)
+
         for i in range(3):
             img = img_[i]
             img_meta = img_meta_[i]
@@ -374,42 +379,56 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
                 # losses.update(loss_bbox)
 
-            '''
             # TODO: assign and sample triplet roi
-            # assign gts and sample proposals
+            # assign instance id
             instance_assigner = build_assigner(self.train_cfg.triplet.assigner)
 
             num_imgs = img.size(0)
             if gt_bboxes_ignore is None:
                 gt_bboxes_ignore = [None for _ in range(num_imgs)]
-            sampling_results = []
+
             assign_result_lst = []
             for i in range(num_imgs):
-                assign_result = instance_assigner.assign(proposal_list[i],
-                                                         gt_bboxes[i],
-                                                         gt_bboxes_ignore[i],
-                                                         gt_instances[i])
-                assign_result_lst.append(assign_result)
+                instance_assign_result = instance_assigner.assign(proposal_list[i],
+                                                                  gt_bboxes[i],
+                                                                  gt_bboxes_ignore[i],
+                                                                  gt_instances[i])
+                assign_result_lst.append(instance_assign_result)
             triplet_assign_result.append(assign_result_lst)
+            triplet_proposals.append(proposal_list)
+            triplet_gt_bboxes.append(gt_bboxes)
+            triplet_gt_instances.append(gt_instances)
+            triplet_feats.append(x)
 
         instance_sampler = build_sampler(
-            self.train_cfg.triplet.sampler, context=self)
-        instance_sampling_results = []
-        for i in range(batch_size):
-            instance_sampling_result = instance_sampler.sample(
-                triplet_assign_result)
-            instance_sampling_results.append(instance_sampling_result)
+            self.train_cfg.triplet.sampler)
+
+        # sampling triplet bboxes pair
+        triplet_sampling_result = instance_sampler.sample(triplet_assign_result,
+                                                          triplet_proposals,
+                                                          triplet_gt_bboxes,
+                                                          triplet_gt_instances,
+                                                          batch_size)
+
+        triplet_rois = triplet_bbox2roi(triplet_sampling_result)
+        triplet_roi_feats = []
+        for t_roi in triplet_rois:
+            roi_feat_lst = []
+            for idx, roi in enumerate(t_roi):
+                roi_feat = self.bbox_roi_extractor(triplet_feats[idx][:self.bbox_roi_extractor.num_inputs], roi.unsqueeze(0))
+                roi_feat_lst.append(roi_feat)
+            triplet_roi_feats.append(roi_feat_lst)
 
         # TODO: add embedding head to extract features(triplet loss)
         # triplet shape: (3,), triplet_list should contain results of a batch
-        triplet_list = [[]]
-        for triplet in triplet_list:
+        for triplet in triplet_roi_feats:
             dista, distb, embedded = self.embedding_head(triplet)
             triplet_loss = self.embedding_head.loss(dista, distb, embedded)
-            for k, v in triplet_loss:
+            for k, v in triplet_loss.items():
                 losses.setdefault(k, 0)
                 losses[k] += v
-                '''
+
+        losses['triplet_loss'] /= len(triplet_roi_feats)
         losses['acc'] /= 3
         return losses
 

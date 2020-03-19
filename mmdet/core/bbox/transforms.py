@@ -167,6 +167,27 @@ def bbox2roi(bbox_list):
     rois = torch.cat(rois_list, 0)
     return rois
 
+def triplet_bbox2roi(bbox_list):
+    """Convert a list of bboxes to roi format.
+
+    Args:
+        bbox_list (list[Tensor]): a list of bboxes corresponding to a batch
+            of images.
+
+    Returns:
+        Tensor: shape (n, 5), [batch_ind, x1, y1, x2, y2]
+    """
+    rois_list = []
+    for img_id, triplets in enumerate(bbox_list):
+        for triplet in triplets:
+            t = []
+            for bbox in triplet:
+                img_inds = bbox.new_full((1,), img_id)
+                roi = torch.cat([img_inds, bbox[:4]], dim=-1)
+                t.append(roi)
+            rois_list.append(t)
+
+    return rois_list
 
 def roi2bbox(rois):
     bbox_list = []

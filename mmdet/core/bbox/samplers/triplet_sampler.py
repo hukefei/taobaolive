@@ -1,71 +1,71 @@
 import torch
+import random
 
-from .base_sampler import BaseSampler
 
-
-class TripletSampler(BaseSampler):
+class TripletSampler(object):
 
     def __init__(self,
                  num,
-                 pos_fraction,
-                 neg_pos_ub=-1,
-                 add_gt_as_proposals=True,
-                 **kwargs):
-        from mmdet.core.bbox import demodata
-        super(TripletSampler, self).__init__(num, pos_fraction, neg_pos_ub,
-                                            add_gt_as_proposals)
-        self.rng = demodata.ensure_rng(kwargs.get('rng', None))
+                 add_gt_as_proposals,
+                 ):
+        self.num = num
+        self.add_gt_as_proposals = add_gt_as_proposals
 
     def sample(self,
-               assign_result,
-               bboxes,
-               gt_bboxes,
-               gt_labels=None,
-               **kwargs):
-        pass
+               assign_result_lst,
+               bboxes_lst,
+               gt_bboxes_lst,
+               gt_instances_lst,
+               batch_size,
+               ):
+        sampler_bboxes_lst = []
 
-    def random_choice(self, gallery, num):
-        """Random select some elements from the gallery.
+        for i in range(batch_size):
+            for j in range(3):
+                if len(bboxes_lst[j][i].shape) < 2:
+                    bboxes_lst[j][i] = bboxes_lst[j][i][None, :]
 
-        If `gallery` is a Tensor, the returned indices will be a Tensor;
-        If `gallery` is a ndarray or list, the returned indices will be a
-        ndarray.
+                bboxes_lst[j][i] = bboxes_lst[j][i][:, :4]
 
-        Args:
-            gallery (Tensor | ndarray | list): indices pool.
-            num (int): expected sample num.
+        for i in range(batch_size):
+            # sampling for each batch
+            batch_sampling_result = []
 
-        Returns:
-            Tensor or ndarray: sampled indices.
-        """
-        assert len(gallery) >= num
+            # choose an instance both in normal and plus
+            sampler_instance = random.choice(gt_instances_lst[0][i])
+            loop_count = 0
+            while sampler_instance not in gt_instances_lst[2][i]:
+                sampler_instance = random.choice(gt_instances_lst[0][i])
+                loop_count += 1
+                if loop_count > 100:
+                    print(gt_instances_lst[0][i], gt_instances_lst[1][i], gt_instances_lst[2][i])
+                    raise Exception
 
-        is_tensor = isinstance(gallery, torch.Tensor)
-        if not is_tensor:
-            gallery = torch.tensor(
-                gallery, dtype=torch.long, device=torch.cuda.current_device())
-        perm = torch.randperm(gallery.numel(), device=gallery.device)[:num]
-        rand_inds = gallery[perm]
-        if not is_tensor:
-            rand_inds = rand_inds.cpu().numpy()
-        return rand_inds
+            # add gt instance bboxes
+            for j in range(3):
+                # loop for normal, minus and plus
+                if self.add_gt_as_proposals and len(gt_instances_lst[j][i]) > 0:
+                    if gt_instances_lst[j][i] is None:
+                        raise ValueError(
+                            'gt_labels must be given when add_gt_as_proposals is True')
+                    bboxes_lst[j][i] = torch.cat([gt_bboxes_lst[j][i], bboxes_lst[j][i]], dim=0)
+                    assign_result_lst[j][i].add_gt_(gt_instances_lst[j][i])
 
-    def _sample_pos(self, assign_result, num_expected, **kwargs):
-        """Randomly sample some positive samples."""
-        pos_inds = torch.nonzero(assign_result.gt_inds > 0)
-        if pos_inds.numel() != 0:
-            pos_inds = pos_inds.squeeze(1)
-        if pos_inds.numel() <= num_expected:
-            return pos_inds
-        else:
-            return self.random_choice(pos_inds, num_expected)
+            normal_inds = torch.nonzero(assign_result_lst[0][i].labels == sampler_instance)
+            normal_pre_sample = torch.Tensor([random.choice(normal_inds) for _ in range(self.num)]).squeeze().int()
 
-    def _sample_neg(self, assign_result, num_expected, **kwargs):
-        """Randomly sample some negative samples."""
-        neg_inds = torch.nonzero(assign_result.gt_inds == 0)
-        if neg_inds.numel() != 0:
-            neg_inds = neg_inds.squeeze(1)
-        if len(neg_inds) <= num_expected:
-            return neg_inds
-        else:
-            return self.random_choice(neg_inds, num_expected)
+            plus_inds = torch.nonzero(assign_result_lst[2][i].labels == sampler_instance)
+            plus_pre_sample = torch.Tensor([random.choice(plus_inds) for _ in range(self.num)]).squeeze().int()
+
+            minus_inds = torch.nonzero(
+                (assign_result_lst[1][i].labels != sampler_instance) & (assign_result_lst[1][i].labels != 0))
+            minus_pre_sample = torch.Tensor([random.choice(minus_inds) for _ in range(self.num)]).squeeze().int()
+
+            for t in range(self.num):
+                triplet = [bboxes_lst[0][i][normal_pre_sample[t]], bboxes_lst[1][i][minus_pre_sample[t]],
+                           bboxes_lst[2][i][plus_pre_sample[t]]]
+                batch_sampling_result.append(triplet)
+
+            sampler_bboxes_lst.append(batch_sampling_result)
+
+        return sampler_bboxes_lst

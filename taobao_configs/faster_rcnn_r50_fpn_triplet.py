@@ -96,8 +96,8 @@ train_cfg = dict(
             ignore_iof_thr=-1),
         sampler=dict(
             type='TripletSampler',
-            num=1,
-            pos_fraction=1,
+            num=10,
+            add_gt_as_proposals=True
         )
     )
 )
