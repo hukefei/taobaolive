@@ -181,8 +181,6 @@ class CocoDataset_triplet(CocoDataset):
         pos_img_info = self.gallery_img_infos[pos_img_id - 1]
         pos_ann_info = self.get_gallery_ann_info(pos_img_id - 1)
         results_pos = dict(img_info=pos_img_info, ann_info=pos_ann_info)
-        results_pos['scale'] = results['img_meta'].data['scale_factor']
-        results_pos['flip'] = results['img_meta'].data['flip']
         self.gallery_pre_pipeline(results_pos)
         results_pos = self.pipeline(results_pos)
 
@@ -194,8 +192,6 @@ class CocoDataset_triplet(CocoDataset):
         neg_img_info = self.gallery_img_infos[neg_img_id - 1]
         neg_ann_info = self.get_gallery_ann_info(neg_img_id - 1)
         results_neg = dict(img_info=neg_img_info, ann_info=neg_ann_info)
-        results_neg['scale'] = results['img_meta'].data['scale_factor']
-        results_neg['flip'] = results['img_meta'].data['flip']
         self.gallery_pre_pipeline(results_neg)
         results_neg = self.pipeline(results_neg)
 
