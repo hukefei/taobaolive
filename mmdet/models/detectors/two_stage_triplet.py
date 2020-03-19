@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler, triplet_bbox2roi
+from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler, triplet_bbox2roi, embedding2result
 from .. import builder
 from ..registry import DETECTORS
 from .base import BaseDetector
@@ -505,13 +505,14 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                 x, img_meta, proposal_list, self.test_cfg.rcnn, rescale=rescale)
             bbox_results = bbox2result(det_bboxes, det_labels,
                                        self.bbox_head.num_classes)
+            embedding_results = embedding2result(det_embedding, det_labels, self.bbox_head.num_classes)
 
         if not self.with_mask:
-            return bbox_results
+            return bbox_results, embedding_results
         else:
             segm_results = self.simple_test_mask(
                 x, img_meta, det_bboxes, det_labels, rescale=rescale)
-            return bbox_results, segm_results
+            return bbox_results, segm_results, embedding_results
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.

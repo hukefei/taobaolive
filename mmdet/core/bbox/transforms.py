@@ -219,6 +219,16 @@ def bbox2result(bboxes, labels, num_classes):
         labels = labels.cpu().numpy()
         return [bboxes[labels == i, :] for i in range(num_classes - 1)]
 
+def embedding2result(embedding, labels, num_classes):
+    if embedding.shape[0] == 0:
+        return [
+            np.zeros((0, embedding.size(1)), dtype=np.float32) for _ in range(num_classes - 1)
+        ]
+    else:
+        embedding = embedding.cpu().numpy()
+        labels = labels.cpu().numpy()
+        return [embedding[labels == i, :] for i in range(num_classes - 1)]
+
 
 def distance2bbox(points, distance, max_shape=None):
     """Decode distance prediction to bounding box.
