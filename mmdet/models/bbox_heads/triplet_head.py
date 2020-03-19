@@ -70,7 +70,7 @@ class TripletHead(nn.Module):
         criterion = torch.nn.MarginRankingLoss(margin=margin)
         loss_triplet = criterion(dista, distb, target)
         loss_embedd = embedded[0].norm(2) + embedded[1].norm(2) + embedded[2].norm(2)
-        loss = loss_triplet + loss_weight * loss_embedd
-        losses.setdefault('triplet_loss', loss)
+        losses.setdefault('triplet_loss', loss_triplet)
+        losses.setdefault('embedded_loss', loss_weight * loss_embedd)
 
         return losses

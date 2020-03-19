@@ -34,7 +34,7 @@ class TripletSampler(object):
             # choose an instance both in normal and plus
             sampler_instance = random.choice(gt_instances_lst[0][i])
             loop_count = 0
-            while sampler_instance not in gt_instances_lst[2][i]:
+            while (sampler_instance not in gt_instances_lst[2][i]) or (sampler_instance == 666):
                 sampler_instance = random.choice(gt_instances_lst[0][i])
                 loop_count += 1
                 if loop_count > 100:

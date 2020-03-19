@@ -425,10 +425,13 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
             dista, distb, embedded = self.embedding_head(triplet)
             triplet_loss = self.embedding_head.loss(dista, distb, embedded)
             for k, v in triplet_loss.items():
-                losses.setdefault(k, 0)
-                losses[k] += v
+                if k not in losses.keys():
+                    losses.setdefault(k, v)
+                else:
+                    losses[k] += v
 
         losses['triplet_loss'] /= len(triplet_roi_feats)
+        losses['embedded_loss'] /= len(triplet_roi_feats)
         losses['acc'] /= 3
         return losses
 
