@@ -186,7 +186,7 @@ class CocoDataset_triplet(CocoDataset):
 
         # get negative example
         neg_id = random.choice(list(self.gallery_instance_dict.keys()))
-        while neg_id == instance_id:
+        while neg_id in pos_ann_info['instances']:
             neg_id = random.choice(list(self.gallery_instance_dict.keys()))
         neg_img_id = random.choice(self.gallery_instance_dict[neg_id])
         neg_img_info = self.gallery_img_infos[neg_img_id - 1]
