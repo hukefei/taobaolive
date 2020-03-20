@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 from torch.autograd import Variable
+from ..utils import ConvModule
 
 
 from mmdet.core import (auto_fp16, bbox_target, delta2bbox, force_fp32,
@@ -19,18 +20,30 @@ class TripletHead(nn.Module):
 
     def __init__(self,
                  with_avg_pool=False,
-                 with_cls=True,
-                 with_reg=True,
+                 num_convs=0,
                  roi_feat_size=7,
-                 in_channels=256):
+                 in_channels=256,
+                 out_channels=1000):
         super(TripletHead, self).__init__()
-        assert with_cls or with_reg
         self.with_avg_pool = with_avg_pool
-        self.with_cls = with_cls
-        self.with_reg = with_reg
         self.roi_feat_size = _pair(roi_feat_size)
         self.roi_feat_area = self.roi_feat_size[0] * self.roi_feat_size[1]
         self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.with_convs = True if num_convs > 0 else False
+        self.num_convs = num_convs
+
+        if self.with_convs:
+            self.embedding_convs = nn.ModuleList()
+            for i in range(self.num_convs):
+                if i == 0:
+                    in_ = self.in_channels
+                else:
+                    in_ = self.out_channels
+                self.embedding_convs.append(ConvModule(
+                        in_,
+                        self.out_channels,
+                        1))
 
         in_channels = self.in_channels
         if self.with_avg_pool:
@@ -42,6 +55,9 @@ class TripletHead(nn.Module):
         pass
 
     def embedding(self, x):
+        if self.with_convs:
+            for conv in self.embedding_convs:
+                x = conv(x)
         if self.with_avg_pool:
             embedded = self.avg_pool(x)
             embedded = embedded.squeeze(-1)
@@ -66,7 +82,7 @@ class TripletHead(nn.Module):
              distb,
              embedded,
              device='cuda',
-             margin=0,
+             margin=0.2,
              loss_weight=0.001):
         losses = dict()
         # 1 means, dista should be larger than distb

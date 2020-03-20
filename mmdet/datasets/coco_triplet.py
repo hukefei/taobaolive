@@ -182,6 +182,13 @@ class CocoDataset_triplet(CocoDataset):
         instance_ids = list(set(ann_info['instances']))
         instance_ids = [idx for idx in instance_ids if idx > 0]
         instance_id = random.choice(instance_ids)
+        loop = 0
+        while instance_id not in self.gallery_instance_dict.keys():
+            instance_id = random.choice(instance_ids)
+            loop += 1
+            if loop >= 100:
+                print(instance_ids)
+                raise Exception
 
         # get positive example
         pos_img_id = random.choice(self.gallery_instance_dict[instance_id])

@@ -9,9 +9,11 @@ CLASS_LIST = ['duanxiushangyi', 'changxiushangyi', 'duanxiuchenshan', 'changxiuc
               'changmajia', 'changkuanwaitao', 'liantiyi',
               'gufeng', 'duanqun', 'zhongdengbanshenqun', 'changbanshenqun', 'duanku',
               'zhongku', 'changku', 'beidaiku']
-def check_invalid(json_dict):
+def check_invalid(json_dict, gallery):
     instance_list = []
     for ann_ in json_dict['annotations']:
+        if ann_['instance_id'] not in gallery:
+            ann_['instance_id'] = 0
         instance_list.append(ann_['instance_id'] == 0)
     instance_list = np.array(instance_list)
     if np.all(instance_list):
@@ -19,7 +21,7 @@ def check_invalid(json_dict):
     else:
         return False
 
-def json2coco(json_dir, save_file, is_video=True):
+def json2coco(json_dir, save_file, is_video=True, gallery=None):
     class_dict = generate_class_dict(CLASS_LIST)
     jsons = glob.glob(os.path.join(json_dir, '*.json'))
     images = []
@@ -27,14 +29,21 @@ def json2coco(json_dir, save_file, is_video=True):
     annotations = []
     categories = []
 
+    gallery_instances = []
+    if is_video:
+        assert gallery is not None
+        with open(gallery, 'r') as f:
+            gallery_ = json.load(f)
+        gallery_instances = gallery_['gallery_instance']
+
     img_id = 1
     cat_id = 1
     for j in jsons:
         with open(j, 'r') as f:
             ann = json.load(f)
 
-        #check if the instance ids are all 0 for video images
-        if is_video and check_invalid(ann):
+        #check if the instance ids are all 0 for video images\
+        if is_video and check_invalid(ann, gallery_instances):
             continue
 
         file_name = ann['image_name']
@@ -75,6 +84,7 @@ def generate_class_dict(class_list):
 
 
 if __name__ == '__main__':
-    json_dir = r'G:\Tianchi\train_dataset'
-    save_file = r'G:\Tianchi\train_dataset.json'
-    json2coco(json_dir, save_file, is_video=True)
+    json_dir = r'G:\Tianchi\part1\train_dataset'
+    save_file = r'G:\Tianchi\part1\train_dataset.json'
+    gallery = r'G:\Tianchi\part1\gallery_instances.json'
+    json2coco(json_dir, save_file, is_video=True, gallery=gallery)

@@ -10,7 +10,9 @@ CLASS_DICT = {'短袖Top': 'duanxiushangyi', '长袖Top': 'changxiushangyi', '�
               '长马甲': 'changmajia', '长款外套': 'changkuanwaitao', '连体衣': 'liantiyi',
               '古风': 'gufeng', '古装': 'gufeng', '短裙': 'duanqun',
               '中等半身裙（及膝）': 'zhongdengbanshenqun', '长半身裙（到脚）': 'changbanshenqun', '短裤': 'duanku',
-              '中裤': 'zhongku', '长裤': 'changku', '背带裤': 'beidaiku'}
+              '中裤': 'zhongku', '长裤': 'changku', '背带裤': 'beidaiku', '长袖上衣': 'changxiushangyi',
+              '短袖上衣': 'duanxiushangyi', '吊带上衣': 'diaodaishangyi', '中等半身裙': 'zhongdengbanshenqun',
+              '长半身裙': 'changbanshenqun', '长外套': 'changkuanwaitao'}
 
 def arrage_image(img_dir, ann_dir, save_dir):
     for root, _, files in os.walk(img_dir):

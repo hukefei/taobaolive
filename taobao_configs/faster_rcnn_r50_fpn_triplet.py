@@ -33,7 +33,9 @@ model = dict(
         featmap_strides=[4, 8, 16, 32]),
     embedding_head=dict(
         type='TripletHead',
-        with_avg_pool=True),
+        with_avg_pool=True,
+        num_convs=1,
+        out_channels=1000),
     bbox_head=dict(
         type='SharedFCBBoxHead',
         num_fcs=2,
@@ -90,9 +92,9 @@ train_cfg = dict(
     triplet=dict(
         assigner=dict(
             type='MaxIoUInstanceAssigner',
-            pos_iou_thr=0.5,
-            neg_iou_thr=0.5,
-            min_pos_iou=0.5,
+            pos_iou_thr=0.6,
+            neg_iou_thr=0.6,
+            min_pos_iou=0.6,
             ignore_iof_thr=-1),
         sampler=dict(
             type='TripletSampler',
@@ -110,13 +112,13 @@ test_cfg = dict(
         nms_thr=0.7,
         min_bbox_size=0),
     rcnn=dict(
-        score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
+        score_thr=0.1, nms=dict(type='nms', iou_thr=0.5), max_per_img=5)
     # soft-nms is also supported for rcnn testing
     # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
 )
 # dataset settings
 dataset_type = 'CocoDataset_triplet'
-data_root = '/data/sdv2/taobao/data/'
+data_root = '/data/sdv2/taobao/data/0320/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -149,25 +151,25 @@ data = dict(
     workers_per_gpu=1,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'demo_video_images.json',
-        img_prefix=data_root + 'demo_video_images/',
+        ann_file=data_root + 'train.json',
+        img_prefix=data_root + 'train/',
         pipeline=train_pipeline,
-        gallery_img_path=data_root + 'demo_images/',
-        gallery_ann_file=data_root + 'demo_images.json',
+        gallery_img_path=data_root + 'gallery/',
+        gallery_ann_file=data_root + 'gallery.json',
     ),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'demo_video_images.json',
-        img_prefix=data_root + 'demo_video_images/',
+        ann_file=data_root + 'val.json',
+        img_prefix=data_root + 'val/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'demo_video_images.json',
-        img_prefix=data_root + 'demo_video_images/',
+        ann_file=data_root + 'val.json',
+        img_prefix=data_root + 'val/',
         pipeline=test_pipeline))
 evaluation = dict(interval=1, metric='bbox')
 # optimizer
-optimizer = dict(type='SGD', lr=0.00375, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.015, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
@@ -176,10 +178,10 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[8, 11])
-checkpoint_config = dict(interval=6)
+checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
@@ -189,7 +191,7 @@ log_config = dict(
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = '/data/sdv2/taobao/work_dirs/'
+work_dir = '/data/sdv2/taobao/work_dirs/0320'
 load_from = '/data/sdv2/cq/pretrained_models/faster_rcnn_r50_fpn_2x_20181010-443129e1.pth'
 resume_from = None
 workflow = [('train', 1)]
