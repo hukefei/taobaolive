@@ -75,6 +75,6 @@ def generate_class_dict(class_list):
 
 
 if __name__ == '__main__':
-    json_dir = r'/data/sdv2/taobao/data/demo_images'
-    save_file = r'/data/sdv2/taobao/data/demo_images.json'
+    json_dir = r'G:\Tianchi\train_dataset'
+    save_file = r'G:\Tianchi\train_dataset.json'
     json2coco(json_dir, save_file, is_video=True)
