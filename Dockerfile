@@ -1,7 +1,5 @@
-FROM registry.cn-shenzhen.aliyuncs.com/hukefei/eggtart:1.1
+FROM registry.cn-shenzhen.aliyuncs.com/eggtart/taobaolive:1.0
 
-# Install mmdetection
-RUN rm -r /models
 ADD . /
 WORKDIR /
 
