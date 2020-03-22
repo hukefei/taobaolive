@@ -97,6 +97,7 @@ def single_video_query(video_imgs,
                        ckpt_file,
                        score_thr,
                        k_nearest,
+                       iou_thr,
                        device='cuda:0'):
     model = init_detector(cfg_file, ckpt_file, device=device)
 
@@ -124,7 +125,7 @@ def single_video_query(video_imgs,
         d = gallery_embeds.shape[1]
         index = faiss.IndexFlatL2(d)
         index.add(gallery_embeds)
-        D, I = index.search(query_embed, k_nearest)   # Distance, Index
+        D, I = index.search(query_embed, k_nearest)  # Distance, Index
         topk = [gallerys[ind] for ind in I[0]]
         item_id_lst.extend([k[0] for k in topk])
         gallery_res.append(topk)
@@ -132,25 +133,55 @@ def single_video_query(video_imgs,
     # choose item_id according to frequency
     item_id = max(item_id_lst, key=item_id_lst.count)
     frame_bbox, item_bbox = [], []
-    for frame, gallery in zip(frame_res, gallery_res):
-        for item in gallery:
-            if item[0] == item_id:
-                frame_bbox.append(frame)
-                item_bbox.append(item)
+    for frame, gallery in zip(frame_res, gallery_res):  # 1 vs k
+        matched_items = [item for item in gallery if item[0] == item_id]
+        if len(matched_items) > 0:
+            scores = [item[6] for item in matched_items]
+            inx = int(np.argmax(np.array(scores)))
+            best_item = matched_items[inx]
+            item_bbox.append(best_item)
+            frame_bbox.append(frame)
+    assert len(frame_bbox) == len(item_bbox)  # 1 vs 1
 
-    # choose frame_index according to the matched item quantity
+    # choose frame_index according to frequency
     frame_inds = [frame[0] for frame in frame_bbox]
     frame_index = max(frame_inds, key=frame_inds.count)
     keep_inds = np.where(np.array(frame_inds) == frame_index)
     frame_bbox = np.array(frame_bbox)[keep_inds]
     item_bbox = np.array(item_bbox)[keep_inds]
 
+    # merge overlap frame_bbox based on IOU
+    # sort (frame, item) pairs by frame bbox scores
+    pairs = sorted(zip(frame_bbox, item_bbox),
+                   key=lambda x: x[0][6], reverse=True)
+    best_frame_bbox = []
+    best_item_bbox = []
+    for i, (frame, item) in enumerate(pairs):
+        if i == 0:
+            best_frame_bbox.append(frame)
+            best_item_bbox.append(item)
+        else:
+            exist_bboxes = [bbox[2:6] for bbox in best_frame_bbox]
+            iou = bboxes_iou(frame[2:6], exist_bboxes)
+            if np.all(iou < iou_thr):
+                best_frame_bbox.append(frame)
+                best_item_bbox.append(item)
+            else:
+                ind = int(np.argmax(iou))
+                # merge frame bbox coordinates by mean value
+                best_frame_bbox[ind][2:6] = np.mean(
+                    [best_frame_bbox[ind][2:6], frame[2:6]], axis=0)
+                # keep the item bbox with highest score
+                best_item_bbox[ind] = \
+                    best_item_bbox[ind] if best_item_bbox[ind][6] > item[6] else item
+    assert len(best_frame_bbox) == len(best_item_bbox)
+
     result_lst = []
-    for frame, item in zip(frame_bbox, item_bbox):
+    for frame, item in zip(best_frame_bbox, best_item_bbox):
         d = {
             "img_name": item[1],
-            "item_bbox": list(item[2:6]),
-            "frame_bbox": list(frame[2:6])
+            "item_bbox": list(map(int, item[2:6])),
+            "frame_bbox": list(map(int, frame[2:6]))
         }
         result_lst.append(d)
     output = {
@@ -161,9 +192,30 @@ def single_video_query(video_imgs,
     return output
 
 
+def bboxes_iou(boxes1, boxes2):
+    """
+    boxes: [xmin, ymin, xmax, ymax] format coordinates.
+    """
+    boxes1 = np.array(boxes1)
+    boxes2 = np.array(boxes2)
+
+    boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])
+    boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * (boxes2[..., 3] - boxes2[..., 1])
+
+    left_up = np.maximum(boxes1[..., :2], boxes2[..., :2])
+    right_down = np.minimum(boxes1[..., 2:], boxes2[..., 2:])
+
+    inter_section = np.maximum(right_down - left_up, 0.0)
+    inter_area = inter_section[..., 0] * inter_section[..., 1]
+    union_area = boxes1_area + boxes2_area - inter_area
+    ious = np.maximum(1.0 * inter_area / union_area, 0.0)
+
+    return ious
+
+
 if __name__ == '__main__':
-    imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')
-    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
+    imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')[:1000]
+    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')[:10]
 
     cfg = './taobao_configs/faster_rcnn_r50_fpn_triplet.py'
     ckpt = './taobao_models/published-8429440b.pth'
@@ -183,10 +235,11 @@ if __name__ == '__main__':
         video_id, video_imgs = capture_video_imgs(video, interval=40)
         output = single_video_query(
             video_imgs, gallery_dict, cfg, ckpt,
-            score_thr=0.5, k_nearest=3
+            score_thr=0.5, k_nearest=3, iou_thr=0.5
         )
         final_result[video_id] = output
     print('Average Cost Time: {}s'.format((time.time() - st) / len(videos)))
+    print(final_result)
 
     with open('result.json', 'w') as f:
         json.dump(final_result, f, indent=4, cls=NumpyEncoder)
