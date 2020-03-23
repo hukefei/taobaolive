@@ -43,13 +43,9 @@ def gallery_results_from_pkl(imgs,
 
 
 def gallery_results(imgs,
-                    cfg_file,
-                    ckpt_file,
+                    model,
                     score_thr,
-                    out_json=None,
-                    device='cuda:0'):
-    model = init_detector(cfg_file, ckpt_file, device=device)
-
+                    out_json=None):
     category_dict = {}
     for i, img in enumerate(imgs):
         item_id = img.split('/')[-2]
@@ -93,14 +89,10 @@ def capture_video_imgs(video_file, interval=40):
 
 def single_video_query(video_imgs,
                        gallery_dict,
-                       cfg_file,
-                       ckpt_file,
+                       model,
                        score_thr,
                        k_nearest,
-                       iou_thr,
-                       device='cuda:0'):
-    model = init_detector(cfg_file, ckpt_file, device=device)
-
+                       iou_thr):
     frame_res = []
     for frame_index, img in video_imgs.items():
         result = inference_detector(model, img)
@@ -219,10 +211,12 @@ if __name__ == '__main__':
 
     cfg = './taobao_configs/faster_rcnn_r50_fpn_triplet.py'
     ckpt = './taobao_models/published-8429440b.pth'
+    print('\nLoading model...')
+    model = init_detector(cfg, ckpt, device='cuda:0')
 
     print('\nPreparing gallery datasets...')
     st = time.time()
-    gallery_dict = gallery_results(imgs, cfg, ckpt, score_thr=0.5,
+    gallery_dict = gallery_results(imgs, model, score_thr=0.5,
                                    out_json='gallery_results.json')
     print('Total Cost Time: {}s'.format(time.time() - st))
     # with open('gallery_results.json', 'r') as f:
@@ -234,7 +228,7 @@ if __name__ == '__main__':
     for i, video in enumerate(videos):
         video_id, video_imgs = capture_video_imgs(video, interval=40)
         output = single_video_query(
-            video_imgs, gallery_dict, cfg, ckpt,
+            video_imgs, gallery_dict, model,
             score_thr=0.5, k_nearest=3, iou_thr=0.5
         )
         final_result[video_id] = output
