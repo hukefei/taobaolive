@@ -46,7 +46,7 @@ def arrage_image(img_dir, ann_dir, save_dir):
 
 
 if __name__ == '__main__':
-    img_dir = r'G:\Tianchi\train_dataset_part1\image'
-    ann_dir = r'G:\Tianchi\train_dataset_part1\image_annotation'
-    save_dir = r'G:\Tianchi\gallery_dataset'
+    img_dir = r'F:\TianChi\train_dataset_part1\image'
+    ann_dir = r'F:\TianChi\train_dataset_part1\image_annotation'
+    save_dir = r'F:\TianChi\train_dataset_part1\gallery_images1'
     arrage_image(img_dir, ann_dir, save_dir)
