@@ -421,7 +421,7 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
         # triplet shape: (3,), triplet_list should contain results of a batch
         for triplet in triplet_roi_feats:
             dista, distb, embedded = self.embedding_head(triplet)
-            triplet_loss = self.embedding_head.loss(dista, distb, embedded)
+            triplet_loss = self.embedding_head.loss(dista, distb, embedded, margin=0.2)
             for k, v in triplet_loss.items():
                 if k not in losses.keys():
                     losses.setdefault(k, v)
@@ -507,12 +507,18 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                        self.bbox_head.num_classes)
             embedding_results = embedding2result(det_embedding, det_labels, self.bbox_head.num_classes)
 
-        if not self.with_mask:
-            return bbox_results, embedding_results
-        else:
+        if self.with_mask:
             segm_results = self.simple_test_mask(
                 x, img_meta, det_bboxes, det_labels, rescale=rescale)
+
+        if self.with_mask and self.with_embedding:
             return bbox_results, segm_results, embedding_results
+        elif self.with_mask:
+            return bbox_results, segm_results
+        elif self.with_embedding:
+            return bbox_results, embedding_results
+        else:
+            return bbox_results
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.

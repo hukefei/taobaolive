@@ -93,7 +93,7 @@ class Concat_DDJ(object):
         by_order: order of ddj patterns
     """
 
-    def __init__(self, img_path, main_pattern=1, by_order=('WHITE', 'RED', 'GREEN', 'BLUE')):
+    def __init__(self, img_path, main_pattern=1, by_order=('BLUE', 'GREEN', 'RED', 'WHITE')):
         self.img_path = img_path
         assert main_pattern in (0, 1)
         self.main_pattern = main_pattern

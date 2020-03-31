@@ -47,6 +47,7 @@ def gallery_results(imgs,
                     score_thr,
                     out_json=None):
     category_dict = {}
+    st = time.time()
     for i, img in enumerate(imgs):
         item_id = img.split('/')[-2]
         img_name = img.split('/')[-1][:-4]
@@ -59,8 +60,10 @@ def gallery_results(imgs,
                     conf = bbox[4]
                     if conf > score_thr:
                         category_dict.setdefault(category_id, []).append(
-                            [item_id] + [img_name] + list(bbox) + [embed]
-                        )
+                            [item_id] + [img_name] + list(bbox) + [embed])
+        if (i+1)%1000 == 0:
+            print('Gallery image avg time cost: {}'.format((time.time()-st)/(i+1)))
+
     if out_json is not None:
         with open(out_json, 'w') as f:
             json.dump(category_dict, f, indent=4, cls=NumpyEncoder)
@@ -172,8 +175,8 @@ def single_video_query(video_imgs,
     for frame, item in zip(best_frame_bbox, best_item_bbox):
         d = {
             "img_name": item[1],
-            "item_bbox": list(map(int, item[2:6])),
-            "frame_bbox": list(map(int, frame[2:6]))
+            "item_box": list(map(int, item[2:6])),
+            "frame_box": list(map(int, frame[2:6]))
         }
         result_lst.append(d)
     output = {
@@ -206,34 +209,34 @@ def bboxes_iou(boxes1, boxes2):
 
 
 if __name__ == '__main__':
-    imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')[:1000]
-    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')[:10]
+    imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')
+    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
 
     cfg = './taobao_configs/faster_rcnn_r50_fpn_triplet.py'
-    ckpt = './taobao_models/published-8429440b.pth'
+    ckpt = './models/published-8429440b.pth'
     print('\nLoading model...')
     model = init_detector(cfg, ckpt, device='cuda:0')
 
     print('\nPreparing gallery datasets...')
-    st = time.time()
+    #st = time.time()
     gallery_dict = gallery_results(imgs, model, score_thr=0.5,
                                    out_json='gallery_results.json')
-    print('Total Cost Time: {}s'.format(time.time() - st))
+    #print('Total Cost Time: {}s'.format(time.time() - st))
     # with open('gallery_results.json', 'r') as f:
     #     gallery_dict = json.load(f)
 
     print('\nStarting video predict...')
-    st = time.time()
+    #st = time.time()
     final_result = {}
     for i, video in enumerate(videos):
-        video_id, video_imgs = capture_video_imgs(video, interval=40)
+        video_id, video_imgs = capture_video_imgs(video, interval=80)
         output = single_video_query(
             video_imgs, gallery_dict, model,
             score_thr=0.5, k_nearest=3, iou_thr=0.5
         )
         final_result[video_id] = output
-    print('Average Cost Time: {}s'.format((time.time() - st) / len(videos)))
-    print(final_result)
+    #print('Average Cost Time: {}s'.format((time.time() - st) / len(videos)))
+    #print(final_result)
 
     with open('result.json', 'w') as f:
         json.dump(final_result, f, indent=4, cls=NumpyEncoder)

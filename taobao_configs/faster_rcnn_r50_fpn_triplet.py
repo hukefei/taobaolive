@@ -35,7 +35,8 @@ model = dict(
         type='TripletHead',
         with_avg_pool=True,
         num_convs=1,
-        out_channels=1000),
+        out_channels=1000
+    ),
     bbox_head=dict(
         type='SharedFCBBoxHead',
         num_fcs=2,

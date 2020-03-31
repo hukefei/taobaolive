@@ -187,9 +187,9 @@ def match_eval(video_list,
 
 
 if __name__ == '__main__':
-    video_list = os.listdir(r'F:\TianChi\validation_dataset_part1\video')
-    match_result = r'F:\TianChi\test_result.json'
-    video_ann_dir = r'F:\TianChi\validation_dataset_part1\video_annotation'
-    img_ann_dir = r'F:\TianChi\validation_dataset_part1\image_annotation'
-    img = r'F:\TianChi\validation_dataset_part1\image'
+    video_list = os.listdir(r'/data/sdv2/taobao/data/val_demo/video')
+    match_result = r'/data/sdv2/taobao/embedding/result.json'
+    video_ann_dir = r'/data/sdv2/taobao/data/val_demo/video_annotation'
+    img_ann_dir = r'/data/sdv2/taobao/data/val_demo/image_annotation'
+    img = r'/data/sdv2/taobao/data/val_demo/image'
     print(match_eval(video_list, match_result, video_ann_dir, img_ann_dir, img))

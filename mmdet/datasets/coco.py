@@ -11,11 +11,11 @@ from mmdet.core import eval_recalls
 from mmdet.utils import print_log
 from .custom import CustomDataset
 from .registry import DATASETS
+from .evaluator import *
 
 
 @DATASETS.register_module
 class CocoDataset(CustomDataset):
-
     CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                'train', 'truck', 'boat', 'traffic_light', 'fire_hydrant',
                'stop_sign', 'parking_meter', 'bench', 'bird', 'cat', 'dog',
@@ -266,6 +266,7 @@ class CocoDataset(CustomDataset):
                  logger=None,
                  jsonfile_prefix=None,
                  classwise=False,
+                 iou_thr_by_class=0.2,
                  proposal_nums=(100, 300, 1000),
                  iou_thrs=np.arange(0.5, 0.96, 0.05)):
         """Evaluation in COCO protocol.
@@ -290,7 +291,7 @@ class CocoDataset(CustomDataset):
         assert isinstance(results, list), 'results must be a list'
         assert len(results) == len(self), (
             'The length of results is not equal to the dataset len: {} != {}'.
-            format(len(results), len(self)))
+                format(len(results), len(self)))
 
         metrics = metric if isinstance(metric, list) else [metric]
         allowed_metrics = ['bbox', 'segm', 'proposal', 'proposal_fast']
@@ -356,7 +357,24 @@ class CocoDataset(CustomDataset):
                 cocoEval.accumulate()
                 cocoEval.summarize()
                 if classwise:  # Compute per-category AP
-                    pass  # TODO
+                    gt_lst = load_coco_bboxes(cocoGt, is_gt=True)
+                    dt_lst = load_coco_bboxes(cocoDt, is_gt=False)
+                    evaluator = Evaluator()
+                    ret, mAP = evaluator.GetMAPbyClass(
+                        gt_lst,
+                        dt_lst,
+                        iou_thr=iou_thr_by_class
+                    )
+                    # Get metric values per each class
+                    for metricsPerClass in ret:
+                        cl = metricsPerClass['class']
+                        ap = metricsPerClass['AP']
+                        ap_str = '{0:.3f}'.format(ap)
+                        eval_results['class_{}'.format(cl)] = float(ap_str)
+                        print('AP: %s (%s)' % (ap_str, cl))
+                    mAP_str = '{0:.3f}'.format(mAP)
+                    eval_results['mAP'] = float(mAP_str)
+                    print('mAP: {}\n'.format(mAP_str))
                 metric_items = [
                     'mAP', 'mAP_50', 'mAP_75', 'mAP_s', 'mAP_m', 'mAP_l'
                 ]

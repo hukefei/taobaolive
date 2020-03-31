@@ -87,7 +87,7 @@ def get_multiple_video_images(video_dir, video_ann_dir, save_dir, **kwargs):
 
 
 if __name__ == '__main__':
-    save_dir = r'G:\Tianchi\Live_demo_20200117\demo_video_images'
+    save_dir = r'G:\Tianchi\Live_demo_20200117\video_img'
     video_dir = r'G:\Tianchi\Live_demo_20200117\video'
     video_ann_dir = r'G:\Tianchi\Live_demo_20200117\video_annotation'
     get_multiple_video_images(video_dir, video_ann_dir, save_dir)

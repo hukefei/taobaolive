@@ -84,7 +84,7 @@ def generate_class_dict(class_list):
 
 
 if __name__ == '__main__':
-    json_dir = r'G:\Tianchi\part1\train_dataset'
-    save_file = r'G:\Tianchi\part1\train_dataset.json'
-    gallery = r'G:\Tianchi\part1\gallery_instances.json'
-    json2coco(json_dir, save_file, is_video=True, gallery=gallery)
+    json_dir = r'/data/sdv2/taobao/data/0320/detection'
+    save_file = r'/data/sdv2/taobao/data/0320/detection.json'
+    # gallery = r'G:\Tianchi\part1\gallery_instances.json'
+    json2coco(json_dir, save_file, is_video=False)

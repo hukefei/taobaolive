@@ -28,7 +28,7 @@ def instance_cutout(img_dir, ann_dir, save_dir):
             cv2.imwrite(save_path, cut_instance)
 
 if __name__ == '__main__':
-    img_dir = r'F:\TianChi\train_dataset_part1\gallery_images1'
+    img_dir = r'G:\Tianchi\Live_demo_20200117\gallery_img'
     ann_dir = img_dir
-    save_dir = r'F:\TianChi\gallery_instance_image\1'
+    save_dir = r'G:\Tianchi\Live_demo_20200117\instances\gallery'
     instance_cutout(img_dir, ann_dir, save_dir)

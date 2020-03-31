@@ -8,6 +8,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from mmdet.utils import print_log
 from .registry import DATASETS
+from .evaluator import load_coco_bboxes, Evaluator
 
 
 @DATASETS.register_module
@@ -223,6 +224,7 @@ class CocoDataset_triplet(CocoDataset):
                  logger=None,
                  jsonfile_prefix=None,
                  classwise=False,
+                 iou_thr_by_class=0.2,
                  proposal_nums=(100, 300, 1000),
                  iou_thrs=np.arange(0.5, 0.96, 0.05)):
         """Evaluation in COCO protocol.
@@ -319,7 +321,25 @@ class CocoDataset_triplet(CocoDataset):
                 cocoEval.accumulate()
                 cocoEval.summarize()
                 if classwise:  # Compute per-category AP
-                    pass  # TODO
+                    gt_lst = load_coco_bboxes(cocoGt, is_gt=True)
+                    dt_lst = load_coco_bboxes(cocoDt, is_gt=False)
+                    evaluator = Evaluator()
+                    ret, mAP = evaluator.GetMAPbyClass(
+                        gt_lst,
+                        dt_lst,
+                        method='EveryPointInterpolation',
+                        iou_thr=iou_thr_by_class
+                    )
+                    # Get metric values per each class
+                    for metricsPerClass in ret:
+                        cl = metricsPerClass['class']
+                        ap = metricsPerClass['AP']
+                        ap_str = '{0:.3f}'.format(ap)
+                        eval_results['class_{}'.format(cl)] = float(ap_str)
+                        print('AP: %s (%s)' % (ap_str, cl))
+                    mAP_str = '{0:.3f}'.format(mAP)
+                    eval_results['mAP'] = float(mAP_str)
+                    print('mAP: {}\n'.format(mAP_str))
                 metric_items = [
                     'mAP', 'mAP_50', 'mAP_75', 'mAP_s', 'mAP_m', 'mAP_l'
                 ]

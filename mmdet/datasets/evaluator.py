@@ -159,6 +159,117 @@ class Evaluator:
                 mAP += CLASS_WEIGHT[c] * ap
         return ret, mAP
 
+    def GetMAPbyClass(self,
+                      groundTruths,
+                      detections,
+                      method='EveryPointInterpolation',
+                      iou_thr=0.3):
+        """Get the metrics used by the VOC Pascal 2012 challenge.
+        Get
+        Args:
+            groundTruths: List with all ground truths (Ex: [imageName,class,confidence=1,(bb coordinates XYX2Y2)]);
+            detections: List with all detections (Ex: [imageName,class,confidence,(bb coordinates XYX2Y2)]);
+            method (default = EveryPointInterpolation): It can be calculated as the implementation
+            in the official PASCAL VOC toolkit (EveryPointInterpolation), or applying the 11-point
+            interpolatio as described in the paper "The PASCAL Visual Object Classes(VOC) Challenge"
+            or EveryPointInterpolation"  (ElevenPointInterpolation);
+        Returns:
+            A list of dictionaries. Each dictionary contains information and metrics of each class.
+            The keys of each dictionary are:
+            dict['class']: class representing the current dictionary;
+            dict['precision']: array with the precision values;
+            dict['recall']: array with the recall values;
+            dict['AP']: average precision;
+            dict['interpolated precision']: interpolated precision values;
+            dict['interpolated recall']: interpolated recall values;
+            dict['total positives']: total number of ground truth positives;
+            dict['total TP']: total number of True Positive detections;
+            dict['total FP']: total number of False Negative detections;
+        """
+        mAP = 0
+        ret = []  # list containing metrics (precision, recall, average precision) of each class
+        # Get all classes
+        classes = []
+        for bb in groundTruths:
+            if bb[1] not in classes:
+                classes.append(bb[1])
+        classes = sorted(classes)
+        # Precision x Recall is obtained individually by each class
+        # Loop through by classes
+        for c in classes:
+            # Get only detection of class c
+            dects = []
+            [dects.append(d) for d in detections if d[1] == c]
+            # Get only ground truths of class c
+            gts = []
+            [gts.append(g) for g in groundTruths if g[1] == c]
+            npos = len(gts)
+            # sort detections by decreasing confidence
+            dects = sorted(dects, key=lambda conf: conf[2], reverse=True)
+            TP = np.zeros(len(dects))
+            FP = np.zeros(len(dects))
+            # create dictionary with amount of gts for each image
+            det = Counter([cc[0] for cc in gts])
+            for key, val in det.items():
+                det[key] = np.zeros(val)
+            # print("Evaluating class: %s (%d detections)" % (str(c), len(dects)))
+            # Loop through detections
+            for d in range(len(dects)):
+                # print('dect %s => %s' % (dects[d][0], dects[d][3],))
+                # Find ground truth image
+                gt = [gt for gt in gts if gt[0] == dects[d][0]]
+                iouMax = sys.float_info.min
+                jmax = None
+                for j in range(len(gt)):
+                    # print('Ground truth gt => %s' % (gt[j][3],))
+                    iou = Evaluator.iou(dects[d][3], gt[j][3])
+                    if iou > iouMax:
+                        iouMax = iou
+                        jmax = j
+                # print(len(gt), iouMax, jmax)
+                if jmax is None:  # there is no gt intersects with dects[d].
+                    FP[d] = 1
+                else:
+                    IOUThreshold = iou_thr
+                    # Assign detection as true positive/don't care/false positive
+                    if iouMax >= IOUThreshold:
+                        if det[dects[d][0]][jmax] == 0:
+                            TP[d] = 1  # count as true positive
+                            det[dects[d][0]][jmax] = 1  # flag as already 'seen'
+                            # print("TP")
+                        else:
+                            FP[d] = 1  # count as false positive
+                            # print("FP")
+                    # - A detected "cat" is overlaped with a GT "cat" with IOU >= IOUThreshold.
+                    else:
+                        FP[d] = 1  # count as false positive
+                        # print("FP")
+            # compute precision, recall and average precision
+            acc_FP = np.cumsum(FP)
+            acc_TP = np.cumsum(TP)
+            rec = acc_TP / npos
+            prec = np.divide(acc_TP, (acc_FP + acc_TP))
+            # Depending on the method, call the right implementation
+            if method == 'EveryPointInterpolation':
+                [ap, mpre, mrec, ii] = Evaluator.CalculateAveragePrecision(rec, prec)
+            else:
+                [ap, mpre, mrec, _] = Evaluator.ElevenPointInterpolatedAP(rec, prec)
+            # add class result in the dictionary to be returned
+            r = {
+                'class': c,
+                'precision': prec,
+                'recall': rec,
+                'AP': ap,
+                'interpolated precision': mpre,
+                'interpolated recall': mrec,
+                'total positives': npos,
+                'total TP': np.sum(TP),
+                'total FP': np.sum(FP)
+            }
+            ret.append(r)
+            mAP += ap/len(classes)
+        return ret, mAP
+
     def PlotPrecisionRecallCurve(self,
                                  groundTruths,
                                  detections,

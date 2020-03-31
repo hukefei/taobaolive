@@ -54,6 +54,11 @@ class TripletHead(nn.Module):
     def init_weights(self):
         pass
 
+    def l2_norm(self, x):
+        if len(x.shape):
+            x = x.reshape((x.shape[0], -1))
+        return F.normalize(x, p=2, dim=1)
+
     def embedding(self, x):
         if self.with_convs:
             for conv in self.embedding_convs:
@@ -64,6 +69,7 @@ class TripletHead(nn.Module):
             embedded = embedded.squeeze(-1)
         else:
             embedded = x
+        embedded = self.l2_norm(embedded)
         return embedded
 
     def forward(self, x):
@@ -83,7 +89,7 @@ class TripletHead(nn.Module):
              embedded,
              device='cuda',
              margin=0.2,
-             loss_weight=0.001):
+             loss_weight=0.0):
         losses = dict()
         # 1 means, dista should be larger than distb
         target = torch.FloatTensor(dista.size()).fill_(1)

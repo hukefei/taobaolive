@@ -132,7 +132,7 @@ class BBoxTestMixin(object):
         embedding_pred = self.embedding_head.embedding(roi_feats)
         img_shape = img_meta[0]['img_shape']
         scale_factor = img_meta[0]['scale_factor']
-        det_bboxes, det_labels, det_embeddings = self.bbox_head.get_det_bboxes(
+        det_bboxes, det_labels, det_embeddings = self.bbox_head.get_det_bboxes_embedded(
             rois,
             cls_score,
             bbox_pred,
