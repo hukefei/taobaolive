@@ -112,6 +112,8 @@ def single_video_query(video_imgs,
     gallery_res = []
     item_id_lst = []
     for res in frame_res:
+        if res == []:
+            continue
         query_embed = res[-1][np.newaxis, :].astype('float32')
         gallerys = gallery_dict[res[1]]
         gallery_embeds = [lst[-1] for lst in gallerys]
@@ -126,6 +128,8 @@ def single_video_query(video_imgs,
         gallery_res.append(topk)
 
     # choose item_id according to frequency
+    if item_id_lst == []:
+        return None
     item_id = max(item_id_lst, key=item_id_lst.count)
     frame_bbox, item_bbox = [], []
     for frame, gallery in zip(frame_res, gallery_res):  # 1 vs k
@@ -226,7 +230,7 @@ if __name__ == '__main__':
     #     gallery_dict = json.load(f)
 
     print('\nStarting video predict...')
-    #st = time.time()
+    st = time.time()
     final_result = {}
     for i, video in enumerate(videos):
         video_id, video_imgs = capture_video_imgs(video, interval=80)
@@ -234,7 +238,10 @@ if __name__ == '__main__':
             video_imgs, gallery_dict, model,
             score_thr=0.5, k_nearest=3, iou_thr=0.5
         )
-        final_result[video_id] = output
+        if output is not None:
+            final_result[video_id] = output
+        if (i+1)%200 == 0:
+            print('video average cost time: {:.2f}s'.format((time.time() - st)/(i+1)))
     #print('Average Cost Time: {}s'.format((time.time() - st) / len(videos)))
     #print(final_result)
 
