@@ -60,6 +60,7 @@ class TripletHead(nn.Module):
         return F.normalize(x, p=2, dim=1)
 
     def embedding(self, x):
+        # TODO: modify embed model details
         if self.with_convs:
             for conv in self.embedding_convs:
                 x = conv(x)

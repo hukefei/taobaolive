@@ -96,6 +96,7 @@ def single_video_query(video_imgs,
                        score_thr,
                        k_nearest,
                        iou_thr):
+    # TODO: multiple videos may match the same gallery item, carry out a method to solve this solution
     frame_res = []
     for frame_index, img in video_imgs.items():
         result = inference_detector(model, img)
@@ -128,6 +129,7 @@ def single_video_query(video_imgs,
         gallery_res.append(topk)
 
     # choose item_id according to frequency
+    # TODO: more flexible method to deal with video with no bbox whose score is larger than threshold
     if item_id_lst == []:
         return None
     item_id = max(item_id_lst, key=item_id_lst.count)

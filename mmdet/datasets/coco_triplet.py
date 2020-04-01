@@ -172,6 +172,7 @@ class CocoDataset_triplet(CocoDataset):
         results['seg_fields'] = []
 
     def prepare_train_img(self, idx):
+        # TODO: find out a new sampling method instead of random sampling
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)
         results = dict(img_info=img_info, ann_info=ann_info)
