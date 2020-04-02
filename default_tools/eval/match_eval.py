@@ -187,9 +187,9 @@ def match_eval(video_list,
 
 
 if __name__ == '__main__':
-    video_list = os.listdir(r'/data/sdv2/taobao/data/val_3/video')
-    match_result = r'/data/sdv2/taobao/embedding/result.json'
-    video_ann_dir = r'/data/sdv2/taobao/data/val_3/video_annotation'
-    img_ann_dir = r'/data/sdv2/taobao/data/val_3/image_annotation'
-    img = r'/data/sdv2/taobao/data/val_3/image'
+    video_list = os.listdir(r'/data/sdv2/taobao/data/val_demo/video')
+    match_result = r'/data/sdv2/taobao/mmdet_taobao/default_tools/test/result.json'
+    video_ann_dir = r'/data/sdv2/taobao/data/val_demo/video_annotation'
+    img_ann_dir = r'/data/sdv2/taobao/data/val_demo/image_annotation'
+    img = r'/data/sdv2/taobao/data/val_demo/image'
     print(match_eval(video_list, match_result, video_ann_dir, img_ann_dir, img))

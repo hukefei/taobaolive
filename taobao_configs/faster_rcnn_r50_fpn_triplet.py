@@ -33,9 +33,9 @@ model = dict(
         featmap_strides=[4, 8, 16, 32]),
     embedding_head=dict(
         type='TripletHead',
-        with_avg_pool=True,
-        num_convs=1,
-        out_channels=1000
+        with_avg_pool=False,
+        feat_dim=1024,
+        embed_dim=256
     ),
     bbox_head=dict(
         type='SharedFCBBoxHead',
@@ -170,7 +170,7 @@ data = dict(
         pipeline=test_pipeline))
 evaluation = dict(interval=1, metric='bbox')
 # optimizer
-optimizer = dict(type='SGD', lr=0.015, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.045, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
@@ -192,7 +192,7 @@ log_config = dict(
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = '/data/sdv2/taobao/work_dirs/0320'
-load_from = '/data/sdv2/cq/pretrained_models/faster_rcnn_r50_fpn_2x_20181010-443129e1.pth'
+work_dir = '/data/sdv2/taobao/work_dirs/0401'
+load_from = '/data/sdv2/taobao/work_dirs/0320/epoch_12.pth'
 resume_from = None
 workflow = [('train', 1)]

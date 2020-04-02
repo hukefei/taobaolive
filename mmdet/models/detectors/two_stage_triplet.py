@@ -410,26 +410,27 @@ class TwoStageDetector_Triplet(BaseDetector, RPNTestMixin, BBoxTestMixin,
                                                           batch_size)
 
         triplet_rois = triplet_bbox2roi(triplet_sampling_result)
-        triplet_roi_feats = []
+        anchor = []
+        neg = []
+        positive = []
         for t_roi in triplet_rois:
             roi_feat_lst = []
             for idx, roi in enumerate(t_roi):
                 roi_feat = self.bbox_roi_extractor(triplet_feats[idx][:self.bbox_roi_extractor.num_inputs], roi.unsqueeze(0))
                 roi_feat_lst.append(roi_feat)
-            triplet_roi_feats.append(roi_feat_lst)
+            anchor.append(roi_feat_lst[0])
+            neg.append(roi_feat_lst[1])
+            positive.append(roi_feat_lst[2])
+
+        anchor = torch.cat(anchor)
+        neg = torch.cat(neg)
+        positive = torch.cat(positive)
 
         # triplet shape: (3,), triplet_list should contain results of a batch
-        for triplet in triplet_roi_feats:
-            dista, distb, embedded = self.embedding_head(triplet)
-            triplet_loss = self.embedding_head.loss(dista, distb, embedded, margin=0.2)
-            for k, v in triplet_loss.items():
-                if k not in losses.keys():
-                    losses.setdefault(k, v)
-                else:
-                    losses[k] += v
+        dan, dap = self.embedding_head(anchor, neg, positive)
+        triplet_loss = self.embedding_head.loss(dan, dap, margin=0.2, loss_weight=3)
 
-        losses['triplet_loss'] /= len(triplet_roi_feats)
-        losses['embedded_loss'] /= len(triplet_roi_feats)
+        losses.update(triplet_loss)
         losses['acc'] /= 3
         return losses
 

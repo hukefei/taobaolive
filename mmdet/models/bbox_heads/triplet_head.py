@@ -20,39 +20,29 @@ class TripletHead(nn.Module):
 
     def __init__(self,
                  with_avg_pool=False,
-                 num_convs=0,
                  roi_feat_size=7,
-                 in_channels=256,
-                 out_channels=1000):
+                 roi_channels=256,
+                 feat_dim=1024,
+                 embed_dim=256):
         super(TripletHead, self).__init__()
         self.with_avg_pool = with_avg_pool
         self.roi_feat_size = _pair(roi_feat_size)
         self.roi_feat_area = self.roi_feat_size[0] * self.roi_feat_size[1]
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.with_convs = True if num_convs > 0 else False
-        self.num_convs = num_convs
-
-        if self.with_convs:
-            self.embedding_convs = nn.ModuleList()
-            for i in range(self.num_convs):
-                if i == 0:
-                    in_ = self.in_channels
-                else:
-                    in_ = self.out_channels
-                self.embedding_convs.append(ConvModule(
-                        in_,
-                        self.out_channels,
-                        1))
-
-        in_channels = self.in_channels
+        self.feat_dim = feat_dim
+        self.embed_dim = embed_dim
         if self.with_avg_pool:
             self.avg_pool = nn.AvgPool2d(self.roi_feat_size)
+            in_ = roi_channels
         else:
-            in_channels *= self.roi_feat_area
+            in_ = roi_channels * self.roi_feat_size[0] * self.roi_feat_size[1]
+        self.fc1 = nn.Linear(in_, feat_dim)
+        self.fc2 = nn.Linear(feat_dim, embed_dim)
 
     def init_weights(self):
-        pass
+        nn.init.normal_(self.fc1.weight, 0, 0.01)
+        nn.init.constant_(self.fc1.bias, 0)
+        nn.init.normal_(self.fc2.weight, 0, 0.01)
+        nn.init.constant_(self.fc2.bias, 0)
 
     def l2_norm(self, x):
         if len(x.shape):
@@ -60,47 +50,42 @@ class TripletHead(nn.Module):
         return F.normalize(x, p=2, dim=1)
 
     def embedding(self, x):
-        # TODO: modify embed model details
-        if self.with_convs:
-            for conv in self.embedding_convs:
-                x = conv(x)
         if self.with_avg_pool:
             embedded = self.avg_pool(x)
             embedded = embedded.squeeze(-1)
             embedded = embedded.squeeze(-1)
         else:
             embedded = x
+        embedded = embedded.view(embedded.size(0), -1)
+        embedded = self.fc1(embedded)
+        embedded = self.fc2(embedded)
         embedded = self.l2_norm(embedded)
         return embedded
 
-    def forward(self, x):
+    def forward(self, a, n, p):
         # x should be triplet list
-        embedded = []
-        for i in x:
-            embedded.append(self.embedding(i))
+        a_feat = self.embedding(a)
+        n_feat = self.embedding(n)
+        p_feat = self.embedding(p)
 
-        dista = F.pairwise_distance(embedded[0], embedded[1], 2)
-        distb = F.pairwise_distance(embedded[0], embedded[2], 2)
+        dan = F.pairwise_distance(a_feat, n_feat, 2)
+        dap = F.pairwise_distance(a_feat, p_feat, 2)
 
-        return dista, distb, embedded
+        return dan, dap
 
     def loss(self,
-             dista,
-             distb,
-             embedded,
+             dan,
+             dap,
              device='cuda',
              margin=0.2,
-             loss_weight=0.0):
+             loss_weight=1):
         losses = dict()
         # 1 means, dista should be larger than distb
-        target = torch.FloatTensor(dista.size()).fill_(1)
+        target = torch.FloatTensor(dan.size()).fill_(1)
         if device == 'cuda':
             target = target.cuda()
-        target = Variable(target)
         criterion = torch.nn.MarginRankingLoss(margin=margin)
-        loss_triplet = criterion(dista, distb, target)
-        loss_embedd = embedded[0].norm(2) + embedded[1].norm(2) + embedded[2].norm(2)
+        loss_triplet = criterion(dan, dap, target) * loss_weight
         losses.setdefault('triplet_loss', loss_triplet)
-        losses.setdefault('embedded_loss', loss_weight * loss_embedd)
 
         return losses

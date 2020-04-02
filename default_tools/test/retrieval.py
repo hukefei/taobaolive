@@ -5,6 +5,7 @@ import faiss
 import time, glob
 import pickle, json
 import numpy as np
+import os
 from mmdet.apis import inference_detector, init_detector
 
 
@@ -46,7 +47,9 @@ def gallery_results(imgs,
                     model,
                     score_thr,
                     out_json=None):
+    print('\nPreparing gallery datasets...')
     category_dict = {}
+    num = len(imgs)
     st = time.time()
     for i, img in enumerate(imgs):
         item_id = img.split('/')[-2]
@@ -61,8 +64,9 @@ def gallery_results(imgs,
                     if conf > score_thr:
                         category_dict.setdefault(category_id, []).append(
                             [item_id] + [img_name] + list(bbox) + [embed])
-        if (i+1)%1000 == 0:
-            print('Gallery image avg time cost: {}'.format((time.time()-st)/(i+1)))
+        if (i + 1) % 1000 == 0:
+            avg_time = (time.time() - st) / (i + 1) + 1e-8
+            print('gallery average time: {:.2f}s, eta: {:.2f}m'.format(avg_time, (num - i - 1) * avg_time / 60))
 
     if out_json is not None:
         with open(out_json, 'w') as f:
@@ -95,9 +99,11 @@ def single_video_query(video_imgs,
                        model,
                        score_thr,
                        k_nearest,
-                       iou_thr):
+                       iou_thr,
+                       topk_bbox=8):
     # TODO: multiple videos may match the same gallery item, carry out a method to solve this solution
     frame_res = []
+    score_lst = []
     for frame_index, img in video_imgs.items():
         result = inference_detector(model, img)
 
@@ -110,13 +116,26 @@ def single_video_query(video_imgs,
                         frame_res.append(
                             [frame_index] + [category_id] + list(bbox) + [embed]
                         )
+                        score_lst.append(conf)
+    final_frame_res = []
+    # only use topk bbox as query
+    topk_bbox = min(topk_bbox, len(score_lst))
+    topk_index = np.argpartition(np.array(score_lst), -1*topk_bbox)[-1*topk_bbox:]
+    for idx, res in enumerate(frame_res):
+        if idx in topk_index:
+            final_frame_res.append(res)
+    frame_res = final_frame_res
+
     gallery_res = []
     item_id_lst = []
+    distance_lst = []
     for res in frame_res:
         if res == []:
             continue
         query_embed = res[-1][np.newaxis, :].astype('float32')
-        gallerys = gallery_dict[res[1]]
+        gallerys = gallery_dict.get(res[1], None)
+        if gallerys is None:
+            continue
         gallery_embeds = [lst[-1] for lst in gallerys]
         gallery_embeds = np.array(gallery_embeds).astype('float32')
 
@@ -127,12 +146,24 @@ def single_video_query(video_imgs,
         topk = [gallerys[ind] for ind in I[0]]
         item_id_lst.extend([k[0] for k in topk])
         gallery_res.append(topk)
+        distance_lst.extend(D.flatten().tolist())
 
-    # choose item_id according to frequency
     # TODO: more flexible method to deal with video with no bbox whose score is larger than threshold
     if item_id_lst == []:
         return None
+    # record item id and average distance
+    item_arr = np.array(item_id_lst)
+    items = np.unique(item_arr)
+    distance_lst = np.array(distance_lst)
+    dists = []
+    for item in items:
+        min_distance = np.min(distance_lst[item_arr == item])
+        dists.append(min_distance)
+
+    # choose item_id according to frequency
+    # item_id = item_id_lst[np.argmin(min_dist_lst)]
     item_id = max(item_id_lst, key=item_id_lst.count)
+    print(item_id, items, dists)
     frame_bbox, item_bbox = [], []
     for frame, gallery in zip(frame_res, gallery_res):  # 1 vs k
         matched_items = [item for item in gallery if item[0] == item_id]
@@ -213,39 +244,50 @@ def bboxes_iou(boxes1, boxes2):
 
     return ious
 
-
-if __name__ == '__main__':
-    imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')
-    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
-
-    cfg = './taobao_configs/faster_rcnn_r50_fpn_triplet.py'
-    ckpt = './models/published-8429440b.pth'
-    print('\nLoading model...')
-    model = init_detector(cfg, ckpt, device='cuda:0')
-
-    print('\nPreparing gallery datasets...')
-    #st = time.time()
-    gallery_dict = gallery_results(imgs, model, score_thr=0.5,
-                                   out_json='gallery_results.json')
-    #print('Total Cost Time: {}s'.format(time.time() - st))
-    # with open('gallery_results.json', 'r') as f:
-    #     gallery_dict = json.load(f)
-
+def multiple_video_query(videos, gallery_dict, model, interval=80):
     print('\nStarting video predict...')
     st = time.time()
     final_result = {}
+    num = len(videos)
     for i, video in enumerate(videos):
-        video_id, video_imgs = capture_video_imgs(video, interval=80)
+        video_id, video_imgs = capture_video_imgs(video, interval=interval)
+        print(video_id)
         output = single_video_query(
             video_imgs, gallery_dict, model,
-            score_thr=0.5, k_nearest=3, iou_thr=0.5
+            score_thr=0.1, k_nearest=3, iou_thr=0.5
         )
         if output is not None:
             final_result[video_id] = output
-        if (i+1)%200 == 0:
-            print('video average cost time: {:.2f}s'.format((time.time() - st)/(i+1)))
-    #print('Average Cost Time: {}s'.format((time.time() - st) / len(videos)))
-    #print(final_result)
+        if (i + 1) % 1000 == 0:
+            avg_time = (time.time() - st) / (i + 1) + 1e-8
+            print('video average time: {:.2f}s, eta: {:.2f}m'.format(avg_time, (num - i - 1) * avg_time / 60))
+    return final_result
+
+def load_model(cfg, ckpt):
+    print('\nLoading model...')
+    model = init_detector(cfg, ckpt, device='cuda:0')
+    return model
+
+if __name__ == '__main__':
+    # imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')
+    # videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
+    imgs = glob.glob('/data/sdv2/taobao/data/val_demo/image/*/*.jpg')
+    videos = glob.glob('/data/sdv2/taobao/data/val_demo/video/*.mp4')
+
+    base_dir = r'/data/sdv2/taobao/mmdet_taobao/'
+    cfg = 'taobao_configs/faster_rcnn_r50_fpn_triplet.py'
+    ckpt = 'models/published_0401-d8037514.pth'
+
+    cfg = os.path.join(base_dir, cfg)
+    ckpt = os.path.join(base_dir, ckpt)
+
+    model = load_model(cfg, ckpt)
+
+    gallery_dict = gallery_results(imgs, model, score_thr=0.1,
+                                   out_json='gallery_results.json')
+    final_result = multiple_video_query(videos, gallery_dict, model, 80)
+
+    print(final_result)
 
     with open('result.json', 'w') as f:
         json.dump(final_result, f, indent=4, cls=NumpyEncoder)
