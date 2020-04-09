@@ -9,11 +9,12 @@ CLASS_LIST = ['duanxiushangyi', 'changxiushangyi', 'duanxiuchenshan', 'changxiuc
               'changmajia', 'changkuanwaitao', 'liantiyi',
               'gufeng', 'duanqun', 'zhongdengbanshenqun', 'changbanshenqun', 'duanku',
               'zhongku', 'changku', 'beidaiku']
-def check_invalid(json_dict, gallery):
+def check_invalid(json_dict, gallery=None):
     instance_list = []
     for ann_ in json_dict['annotations']:
-        if ann_['instance_id'] not in gallery:
-            ann_['instance_id'] = 0
+        if gallery is not None:
+            if ann_['instance_id'] not in gallery:
+                ann_['instance_id'] = 0
         instance_list.append(ann_['instance_id'] == 0)
     instance_list = np.array(instance_list)
     if np.all(instance_list):
@@ -30,11 +31,12 @@ def json2coco(json_dir, save_file, is_video=True, gallery=None):
     categories = []
 
     gallery_instances = []
-    if is_video:
-        assert gallery is not None
+    if is_video and gallery is not None:
         with open(gallery, 'r') as f:
             gallery_ = json.load(f)
         gallery_instances = gallery_['gallery_instance']
+    else:
+        gallery_instances = None
 
     img_id = 1
     cat_id = 1
@@ -84,7 +86,7 @@ def generate_class_dict(class_list):
 
 
 if __name__ == '__main__':
-    json_dir = r'/data/sdv2/taobao/data/0320/detection'
-    save_file = r'/data/sdv2/taobao/data/0320/detection.json'
-    # gallery = r'G:\Tianchi\part1\gallery_instances.json'
-    json2coco(json_dir, save_file, is_video=False)
+    json_dir = r'/data/sdv2/taobao/data/0403/video'
+    save_file = r'/data/sdv2/taobao/data/0403/video.json'
+    gallery = r'/data/sdv2/taobao/data/0403/gallery_instances.json'
+    json2coco(json_dir, save_file, is_video=True, gallery=gallery)

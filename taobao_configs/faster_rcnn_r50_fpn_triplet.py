@@ -93,9 +93,9 @@ train_cfg = dict(
     triplet=dict(
         assigner=dict(
             type='MaxIoUInstanceAssigner',
-            pos_iou_thr=0.6,
-            neg_iou_thr=0.6,
-            min_pos_iou=0.6,
+            pos_iou_thr=0.7,
+            neg_iou_thr=0.7,
+            min_pos_iou=0.7,
             ignore_iof_thr=-1),
         sampler=dict(
             type='TripletSampler',
@@ -119,7 +119,7 @@ test_cfg = dict(
 )
 # dataset settings
 dataset_type = 'CocoDataset_triplet'
-data_root = '/data/sdv2/taobao/data/0320/'
+data_root = '/data/sdv2/taobao/data/0403/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -148,12 +148,12 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    imgs_per_gpu=1,
-    workers_per_gpu=1,
+    imgs_per_gpu=3,
+    workers_per_gpu=3,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'train.json',
-        img_prefix=data_root + 'train/',
+        ann_file=data_root + 'video.json',
+        img_prefix=data_root + 'video/',
         pipeline=train_pipeline,
         gallery_img_path=data_root + 'gallery/',
         gallery_ann_file=data_root + 'gallery.json',
@@ -176,13 +176,13 @@ optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 lr_config = dict(
     policy='step',
     warmup='linear',
-    warmup_iters=500,
+    warmup_iters=3000,
     warmup_ratio=1.0 / 3,
     step=[8, 11])
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=300,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
@@ -192,7 +192,7 @@ log_config = dict(
 total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = '/data/sdv2/taobao/work_dirs/0401'
-load_from = '/data/sdv2/taobao/work_dirs/0320/epoch_12.pth'
+work_dir = '/data/sdv2/taobao/work_dirs/0403'
+load_from = '/data/sdv2/taobao/work_dirs/0401/epoch_12.pth'
 resume_from = None
 workflow = [('train', 1)]

@@ -1,6 +1,7 @@
 import os
 import cv2
 import json
+import glob
 
 
 def gallery_instances(img_dir, ann_dir, save_dir):
@@ -32,8 +33,25 @@ def gallery_instances(img_dir, ann_dir, save_dir):
     with open(os.path.join(save_dir, 'gallery_instances.json'), 'w') as f:
         json.dump(gallery_ins_dict, f, indent=4)
 
+def gallery_instances_2(ann_dir, save_dir):
+    gallery_ins = []
+    anns = glob.glob(os.path.join(ann_dir, '*.json'))
+    for ann in anns:
+        if os.path.exists(ann):
+            with open(ann, 'r') as f:
+                ann = json.load(f)
+        else:
+            continue
+        if ann['annotations'] != []:
+            for ann_ in ann['annotations']:
+                gallery_ins.append(ann_['instance_id'])
+    gallery_ins_dict = {'gallery_instance': list(set(gallery_ins))}
+    with open(os.path.join(save_dir, 'gallery_instances.json'), 'w') as f:
+        json.dump(gallery_ins_dict, f, indent=4)
+
 if __name__ == '__main__':
-    img_dir = r'G:\Tianchi\train_dataset_part1\image'
-    ann_dir = r'G:\Tianchi\train_dataset_part1\image_annotation'
-    save_dir = r'G:\Tianchi\part1'
-    gallery_instances(img_dir, ann_dir, save_dir)
+    # img_dir = r'G:\Tianchi\train_dataset_part1\image'
+    ann_dir = r'/data/sdv2/taobao/data/0403/gallery'
+    save_dir = r'/data/sdv2/taobao/data/0403/'
+    # gallery_instances(img_dir, ann_dir, save_dir)
+    gallery_instances_2(ann_dir, save_dir)

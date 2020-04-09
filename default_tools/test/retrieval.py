@@ -46,31 +46,54 @@ def gallery_results_from_pkl(imgs,
 def gallery_results(imgs,
                     model,
                     score_thr,
-                    out_json=None):
+                    out_json=None,
+                    topk=5):
     print('\nPreparing gallery datasets...')
     category_dict = {}
-    num = len(imgs)
+    all_images = glob.glob(os.path.join(imgs, '*/*.jpg'))
+    num = len(all_images)
     st = time.time()
-    for i, img in enumerate(imgs):
-        item_id = img.split('/')[-2]
-        img_name = img.split('/')[-1][:-4]
-        result = inference_detector(model, img)
+    # get item_id lst and img_name lst
+    item_lst = os.listdir(imgs)
+    print('total item in gallery: {}'.format(len(item_lst)))
 
-        for idx, (bboxes, embeds) in enumerate(zip(*result)):
-            category_id = idx + 1
-            if len(bboxes) != 0:
-                for bbox, embed in zip(bboxes, embeds):
-                    conf = bbox[4]
-                    if conf > score_thr:
-                        category_dict.setdefault(category_id, []).append(
-                            [item_id] + [img_name] + list(bbox) + [embed])
-        if (i + 1) % 1000 == 0:
-            avg_time = (time.time() - st) / (i + 1) + 1e-8
-            print('gallery average time: {:.2f}s, eta: {:.2f}m'.format(avg_time, (num - i - 1) * avg_time / 60))
+    i = 0
+    for item in item_lst:
+        item_result = []
+        score_lst = []
+        category_lst = []
+        images = os.listdir(os.path.join(imgs, item))
+        final_result = []
+        final_category = []
+        for img in images:
+            # print out info
+            if (i + 1) % 1000 == 0:
+                avg_time = (time.time() - st) / (i + 1) + 1e-8
+                print('gallery average time: {:.2f}s, eta: {:.2f}m'.format(avg_time, (num - i - 1) * avg_time / 60))
+            i += 1
 
-    if out_json is not None:
-        with open(out_json, 'w') as f:
-            json.dump(category_dict, f, indent=4, cls=NumpyEncoder)
+            image = os.path.join(imgs, item, img)
+            result = inference_detector(model, image)
+
+            for idx, (bboxes, embeds) in enumerate(zip(*result)):
+                category_id = idx + 1
+                if len(bboxes) != 0:
+                    for bbox, embed in zip(bboxes, embeds):
+                        conf = bbox[4]
+                        if conf > score_thr:
+                            item_result.append([item] + [img.split('.')[0]] + list(bbox) + [embed])
+                            score_lst.append(conf)
+                            category_lst.append(category_id)
+
+        topk = min(topk, len(score_lst))
+        topk_index = np.argpartition(np.array(score_lst), -1 * topk)[-1 * topk:]
+        for i, (result, category) in enumerate(zip(*(item_result, category_lst))):
+            if i in topk_index:
+                category_dict.setdefault(category, []).append(result)
+
+    # if out_json is not None:
+    #     with open(out_json, 'w') as f:
+    #         json.dump(category_dict, f, indent=4, cls=NumpyEncoder)
     return category_dict
 
 
@@ -120,7 +143,7 @@ def single_video_query(video_imgs,
     final_frame_res = []
     # only use topk bbox as query
     topk_bbox = min(topk_bbox, len(score_lst))
-    topk_index = np.argpartition(np.array(score_lst), -1*topk_bbox)[-1*topk_bbox:]
+    topk_index = np.argpartition(np.array(score_lst), -1 * topk_bbox)[-1 * topk_bbox:]
     for idx, res in enumerate(frame_res):
         if idx in topk_index:
             final_frame_res.append(res)
@@ -244,6 +267,7 @@ def bboxes_iou(boxes1, boxes2):
 
     return ious
 
+
 def multiple_video_query(videos, gallery_dict, model, interval=80):
     print('\nStarting video predict...')
     st = time.time()
@@ -263,28 +287,30 @@ def multiple_video_query(videos, gallery_dict, model, interval=80):
             print('video average time: {:.2f}s, eta: {:.2f}m'.format(avg_time, (num - i - 1) * avg_time / 60))
     return final_result
 
+
 def load_model(cfg, ckpt):
     print('\nLoading model...')
     model = init_detector(cfg, ckpt, device='cuda:0')
     return model
 
-if __name__ == '__main__':
-    # imgs = glob.glob('/tcdata/test_dataset_3w/image/*/*.jpg')
-    # videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
-    imgs = glob.glob('/data/sdv2/taobao/data/val_demo/image/*/*.jpg')
-    videos = glob.glob('/data/sdv2/taobao/data/val_demo/video/*.mp4')
 
-    base_dir = r'/data/sdv2/taobao/mmdet_taobao/'
+if __name__ == '__main__':
+    imgs = '/tcdata/test_dataset_3w/image/'
+    videos = glob.glob('/tcdata/test_dataset_3w/video/*.mp4')
+    # imgs = '/data/sdv2/taobao/data/val_demo/image/'
+    # videos = glob.glob('/data/sdv2/taobao/data/val_demo/video/*.mp4')
+
+    # base_dir = r'/data/sdv2/taobao/mmdet_taobao/'
+    base_dir = r'/'
     cfg = 'taobao_configs/faster_rcnn_r50_fpn_triplet.py'
-    ckpt = 'models/published_0401-d8037514.pth'
+    ckpt = 'models/0403-publis-8415cecc.pth'
 
     cfg = os.path.join(base_dir, cfg)
     ckpt = os.path.join(base_dir, ckpt)
 
     model = load_model(cfg, ckpt)
 
-    gallery_dict = gallery_results(imgs, model, score_thr=0.1,
-                                   out_json='gallery_results.json')
+    gallery_dict = gallery_results(imgs, model, score_thr=0.1, topk=5)
     final_result = multiple_video_query(videos, gallery_dict, model, 80)
 
     print(final_result)

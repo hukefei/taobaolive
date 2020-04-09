@@ -183,6 +183,8 @@ class CocoDataset_triplet(CocoDataset):
 
         instance_ids = list(set(ann_info['instances']))
         instance_ids = [idx for idx in instance_ids if idx > 0]
+        if instance_ids == []:
+            return {}
         instance_id = random.choice(instance_ids)
         loop = 0
         while instance_id not in self.gallery_instance_dict.keys():
